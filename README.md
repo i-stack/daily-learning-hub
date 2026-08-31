@@ -1,11 +1,12 @@
-# 每日阴符经
+# 每日学习库
 
-《阴符经》结构化日课静态站点。课程 JSON 是唯一事实源，页面由构建脚本自动生成。
+统一收集定时学习任务产出的结构化内容。课程 JSON 是唯一事实源，首页、专题页、日课页、周索引和知识树由构建脚本自动生成。
 
-## 新增课程
+## 接入新的学习专题
 
-1. 在 `data/yfj/` 增加符合统一模型的 JSON。
-2. 运行 `npm run build` 生成目录、日课、周索引与月度知识树。
-3. 运行 `npm run check` 校验数据和产物。
+1. 在 `data/catalog.json` 注册专题，例如 `ddj`、`yijing` 或其他学习任务。
+2. 在 `data/<key>/` 中写入该专题的课程 JSON。
+3. 运行 `npm run build` 生成网站。
+4. 运行 `npm run check` 校验数据与页面。
 
-`schemaVersion` 与 `work` 字段为后续接入《道德经》《易经》预留。
+所有课程共享 `schemaVersion`、`work`、`id`、`title`、`date`、`status`、`chapter`、`keywords`、`summary` 与 `sections`；专题特有信息可增加 `extensions`。
