@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D001",
+  "title": "RunLoop：事件循环与线程保活",
+  "date": "2026-09-01",
+  "status": "completed",
+  "chapter": "运行时与并发基础",
+  "keywords": ["RunLoop", "CFRunLoop", "事件循环", "线程保活", "主线程"],
+  "summary": "从事件循环理解主线程为什么能持续响应，以及后台线程保活为何必须同时具备事件源与正确生命周期。",
+  "sections": {
+    "original": "背景：iOS 应用不能在 main 返回后结束，却又不能用死循环占满 CPU。UIKit 在主线程建立事件循环，让线程在无事时休眠、有事件时被唤醒。常见 API 包括 RunLoop.current、RunLoop.main、run(mode:before:)、CFRunLoopGetCurrent、CFRunLoopRun 与 CFRunLoopStop。典型场景是主线程事件处理、Timer 调度、端口输入，以及确有长期事件源的后台常驻线程。",
+    "explanation": "运行机制：一次循环会先通知观察者即将进入，处理定时器和输入源，再在没有待办工作时进入内核等待；端口消息、事件源、定时器到期或显式唤醒会让它继续运行。RunLoop 属于线程：主线程由应用框架自动驱动，其他线程默认没有持续运行的 RunLoop。仅取得 RunLoop 对象不等于它已经运行，也不等于线程会永久存活。",
+    "coreIdea": "底层原理：Foundation RunLoop 是 CFRunLoop 的面向对象封装。CFRunLoop 维护多个 Mode；每次运行只选择一个 Mode，并处理该 Mode 下的 Source、Timer 与 Observer。没有可处理的输入源或定时器时，运行调用会返回。因此线程保活的本质不是空转，而是让线程在有有效事件源时睡眠等待。",
+    "connections": "Apple 设计动机：同时满足响应性与能耗，把分散的异步事件汇聚进受控循环，用内核等待代替轮询。架构上，RunLoop 是调度基础设施，不应成为业务状态容器。现代业务异步优先使用 GCD、Operation 或 Swift Concurrency；只有线程亲和、端口输入、特定第三方组件等场景，才值得直接管理专用线程及其 RunLoop。",
+    "applications": "工程实战：创建专用 Thread；在线程入口安装至少一个真实输入源或端口；用 autoreleasepool 包住工作循环；明确停止标记和 CFRunLoopStop 的退出路径；跨线程提交任务后显式唤醒；用 CFRunLoopObserver 观测阶段而不是猜测。若需求只是串行执行任务，优先改用串行队列。",
+    "reflection": "常见坑：Timer 只加入 default Mode，滚动时暂停；线程中直接调用 run 却没有有效 Source，导致立即退出；用 while true 或遥远未来的 Timer 假装保活；跨线程随意操作 RunLoop；忘记停止线程和清理端口；误以为 RunLoop 等同于线程或 GCD 队列。反思：当前需求真的要求线程亲和吗，还是只需要串行调度？",
+    "questions": [
+      "RunLoop 为什么能让线程在没有任务时不消耗一个 CPU 核心？",
+      "RunLoop、线程和 GCD 队列分别是什么关系？",
+      "为什么后台线程只调用 RunLoop.current.run() 仍可能立即退出？",
+      "主线程滚动列表时 Timer 暂停，最可能与什么机制有关？",
+      "面试题：请按『对象关系—一次循环—休眠唤醒—工程边界』解释 RunLoop。"
+    ],
+    "mastery": "一句话总结：RunLoop 是绑定在线程上的事件调度循环，用 Mode 组织输入源、定时器和观察者，在无事时休眠、有事时唤醒。掌握标准：能画出一次循环路径；解释保活所需的有效事件源和退出机制；判断何时使用 RunLoop、何时使用更高层并发工具；独立定位 Mode 导致的 Timer 暂停问题。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 1,
+      "topic": "RunLoop：事件循环与线程保活"
+    },
+    "references": [
+      "Apple Core Foundation Run Loop Programming Guide",
+      "CFRunLoop Reference",
+      "Foundation RunLoop Documentation"
+    ]
+  }
+}

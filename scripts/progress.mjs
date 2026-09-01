@@ -22,10 +22,14 @@ if (prefixes.size === 1 && !prefixes.has(prefix)) {
 const numbers = files.map(file => Number(file.match(/-D(\d{3})\.json$/)[1]));
 const current = numbers.length ? Math.max(...numbers) : 0;
 const next = current + 1;
+const curriculum = track.curriculum
+  ? JSON.parse(await readFile(new URL(track.curriculum, dataDir), 'utf8'))
+  : null;
 
 console.log(JSON.stringify({
   track: track.title,
   truthSource: `data/${track.key}/*.json`,
   current: current ? `${prefix}-D${String(current).padStart(3, '0')}` : null,
-  next: `${prefix}-D${String(next).padStart(3, '0')}`
+  next: `${prefix}-D${String(next).padStart(3, '0')}`,
+  nextTopic: curriculum?.[next - 1] ?? null
 }, null, 2));
