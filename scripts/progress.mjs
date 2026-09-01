@@ -11,7 +11,14 @@ if (!track) {
 
 const dataDir = new URL(`data/${track.key}/`, root);
 const files = (await readdir(dataDir)).filter(file => /^[A-Z]+-D\d{3}\.json$/.test(file));
-const prefix = files[0]?.match(/^([A-Z]+)-D/)[1] ?? track.key.toUpperCase();
+const prefixes = new Set(files.map(file => file.match(/^([A-Z]+)-D/)[1]));
+if (prefixes.size > 1) {
+  throw new Error(`${track.key} 存在多个课程 ID 前缀：${[...prefixes].join('、')}`);
+}
+const prefix = track.prefix ?? [...prefixes][0] ?? track.key.toUpperCase();
+if (prefixes.size === 1 && !prefixes.has(prefix)) {
+  throw new Error(`${track.key} 的课程 ID 前缀应为 ${prefix}`);
+}
 const numbers = files.map(file => Number(file.match(/-D(\d{3})\.json$/)[1]));
 const current = numbers.length ? Math.max(...numbers) : 0;
 const next = current + 1;
