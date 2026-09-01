@@ -7,5 +7,14 @@
     "description": "从原文出发，理解天道、机制与行动之间的关系。",
     "category": "中华经典",
     "status": "active"
+  },
+  {
+    "key": "ddj",
+    "slug": "daodejing",
+    "title": "每日道德经",
+    "shortTitle": "道德经",
+    "description": "对读传世本与出土文献，在文字差异、哲学结构与现实实践之间建立连接。",
+    "category": "中华经典",
+    "status": "active"
   }
 ]

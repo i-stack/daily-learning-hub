@@ -10,3 +10,13 @@
 4. 运行 `npm run check` 校验数据与页面。
 
 所有课程共享 `schemaVersion`、`work`、`id`、`title`、`date`、`status`、`chapter`、`keywords`、`summary` 与 `sections`；专题特有信息可增加 `extensions`。
+
+## 每日发布的进度规则
+
+每个专题都只以 `data/<key>/` 中已发布课程 JSON 的最大编号为进度真值，不使用聊天记录、网页生成物或 `index.json` 中的编号。发布前运行：
+
+```sh
+npm run progress -- ddj
+```
+
+命令会返回当前最大课程 ID 和下一课程 ID。《道德经》使用 `DDJ-Dxxx`，新课程必须按《道德经》原文章次继续递增；写入 JSON 后依次运行 `npm run build` 与 `npm run check`，全部通过后才可提交和发布。`data/<key>/index.json`、专题列表、课程详情、周索引和知识树均由构建脚本生成，不手工维护。
