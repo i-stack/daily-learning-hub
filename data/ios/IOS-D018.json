@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D018",
+  "title": "Rendering Pipeline：从 Layer Tree 到最终显示",
+  "date": "2026-08-27",
+  "status": "completed",
+  "chapter": "渲染机制",
+  "keywords": [
+    "Rendering Pipeline",
+    "从 Layer Tree 到最终显示"
+  ],
+  "summary": "Rendering Pipeline：从 Layer Tree 到最终显示：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+  "sections": {
+    "original": "背景、API 与场景：Rendering Pipeline：从 Layer Tree 到最终显示 是 iOS 底层训练营 Day 18 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+    "explanation": "运行机制：Layer Tree 经事务提交到 Render Server，CPU 完成布局/绘制/解码，GPU 合成纹理并赶在 VSync 前显示。",
+    "coreIdea": "核心原理：Layer Tree 经事务提交到 Render Server，CPU 完成布局/绘制/解码，GPU 合成纹理并赶在 VSync 前显示。",
+    "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+    "applications": "工程实战：联合 Time Profiler、Core Animation 与 Hitches 判断瓶颈属于主线程、CPU 栅格化还是 GPU 合成。",
+    "reflection": "常见坑与反思：不能把所有掉帧归因于 GPU；平均 FPS 会掩盖单次长 hitch。",
+    "questions": [
+      "请脱稿解释“Rendering Pipeline：从 Layer Tree 到最终显示”解决的核心问题与主要 API。",
+      "画出本课从调用入口到底层结果的完整链路。",
+      "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+      "给出一个真实故障，并说明用什么证据验证根因。",
+      "什么条件下你会选择另一种实现？"
+    ],
+    "mastery": "一句话总结：Layer Tree 经事务提交到 Render Server，CPU 完成布局/绘制/解码，GPU 合成纹理并赶在 VSync 前显示。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 18,
+      "topic": "Rendering Pipeline：从 Layer Tree 到最终显示"
+    },
+    "source": "iOS 底层训练营历史课程 Day 1–23"
+  }
+}

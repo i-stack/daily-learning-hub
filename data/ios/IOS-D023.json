@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D023",
+  "title": "最终知识地图：从对象、调度到渲染与性能",
+  "date": "2026-09-01",
+  "status": "completed",
+  "chapter": "综合知识地图",
+  "keywords": ["知识地图", "对象生命周期", "动态消息", "任务调度", "渲染性能"],
+  "summary": "把 Day 1–22 收束为所有权、动态消息、任务调度、渲染性能四层，并用一条真实调用链检验知识是否已经连成系统。",
+  "sections": {
+    "original": "背景与范围：Day 1–22 已覆盖 RunLoop、ARC、Block、Runtime、KVC/KVO、AutoreleasePool、Category、Associated Object、Swizzling、消息转发、NSProxy、Notification、GCD、Operation、UIView/CALayer、Core Animation、渲染管线、Auto Layout、列表复用、Diffable Data Source 与 Instruments。Day 23 不再增加孤立名词，而是把它们组织成可用于设计与排障的最终知识地图。",
+    "explanation": "四层地图：第一层是对象与所有权，回答谁持有谁、何时释放；第二层是动态消息与通信，回答调用如何找到实现、对象如何解耦协作；第三层是任务调度，回答代码何时、在哪个执行上下文运行；第四层是渲染与性能，回答状态如何经过布局、事务、栅格化和合成成为屏幕像素。",
+    "coreIdea": "纵向调用链：Touch Event→RunLoop 唤醒→UIResponder/Target-Action→objc_msgSend→ViewModel→Network→GCD/Operation 后台解析→主线程状态合并→Diffable reconfigure→Auto Layout→CALayer→CATransaction Commit→Render Server→GPU Composition→Display。每个箭头都必须回答调用者、线程、同步/异步、对象所有权和可观测信号。",
+    "connections": "Apple 的总体设计不是追求单一机制万能，而是分层：ARC 管确定性生命周期，Runtime 提供动态扩展，RunLoop 与队列协调事件和任务，Retained Mode Layer Tree 批量提交视觉状态，Render Server 隔离最终合成，Instruments 负责把跨层猜测变成证据。架构质量取决于边界是否明确，而不是使用了多少高级 API。",
+    "applications": "综合实战：选择聊天页『点击发送并流式显示』作为贯穿实验。为触摸到网络请求、SSE 接收、Markdown 解析、Cell 测量、Snapshot/reconfigure、自动滚动和 CATransaction 分别标注线程、所有权与 signpost；固定设备和数据录制基线，再对最重阶段做一次最小优化并复测。",
+    "reflection": "最终复盘四问：一、谁持有谁，是否存在环或提前释放？二、代码在哪里执行，队列、线程和 RunLoop 是否混淆？三、状态身份是什么，messageID 与 indexPath 是否混淆？四、结论凭什么成立，是否有调用栈、signpost、内存图或帧指标支持？任何一问答不清，知识地图就仍有断点。",
+    "questions": [
+      "画出『点击发送→流式文本显示』的完整链路，并为每个箭头标注线程与同步/异步语义。",
+      "在这条链路中，ARC、Block、Runtime、RunLoop、GCD 和 CATransaction 分别承担什么职责？",
+      "为什么 indexPath 不能作为流式消息的稳定身份？Diffable Data Source 应如何更新内容？",
+      "一次掉帧发生后，如何依次排除主线程阻塞、Auto Layout、文本排版、图片解码和 GPU 合成？",
+      "设计一个实验，同时证明对象没有泄漏、任务没有串行瓶颈、UI 更新没有超过帧预算。",
+      "如果只能保留四个诊断问题，你会如何使用『所有权、执行上下文、状态身份、验证证据』？"
+    ],
+    "mastery": "一句话总结：真正的 iOS 底层能力，是沿一条真实业务链同时解释对象为何存在、代码为何此时执行、状态如何抵达屏幕，以及证据如何推翻错误归因。掌握标准：60 分能画出四层地图；80 分能定位跨层故障并指出最可能断点；100 分能设计所有权、调度、状态和观测边界清晰的系统，并用 Instruments 数据证明设计有效。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 23,
+      "topic": "最终知识地图：从对象、调度到渲染与性能"
+    },
+    "source": "iOS 底层训练营历史课程 Day 1–23"
+  }
+}

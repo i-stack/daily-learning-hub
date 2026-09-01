@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D010",
+  "title": "Method Swizzling：方法交换、AOP 与安全边界",
+  "date": "2026-08-19",
+  "status": "completed",
+  "chapter": "动态系统",
+  "keywords": [
+    "Method Swizzling",
+    "方法交换",
+    "AOP ",
+    "安全边界"
+  ],
+  "summary": "Method Swizzling：方法交换、AOP 与安全边界：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+  "sections": {
+    "original": "背景、API 与场景：Method Swizzling：方法交换、AOP 与安全边界 是 iOS 底层训练营 Day 10 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+    "explanation": "运行机制：交换改变 SEL 与 IMP 的映射；继承场景需先确保目标类有独立方法条目。",
+    "coreIdea": "核心原理：交换改变 SEL 与 IMP 的映射；继承场景需先确保目标类有独立方法条目。",
+    "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+    "applications": "工程实战：集中管理 Hook，保证只执行一次，并测试继承、重复加载和多个 SDK 同时交换。",
+    "reflection": "常见坑与反思：错误调用原实现会递归；全局行为依赖加载顺序，风险高于普通扩展。",
+    "questions": [
+      "请脱稿解释“Method Swizzling：方法交换、AOP 与安全边界”解决的核心问题与主要 API。",
+      "画出本课从调用入口到底层结果的完整链路。",
+      "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+      "给出一个真实故障，并说明用什么证据验证根因。",
+      "什么条件下你会选择另一种实现？"
+    ],
+    "mastery": "一句话总结：交换改变 SEL 与 IMP 的映射；继承场景需先确保目标类有独立方法条目。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 10,
+      "topic": "Method Swizzling：方法交换、AOP 与安全边界"
+    },
+    "source": "iOS 底层训练营历史课程 Day 1–23"
+  }
+}

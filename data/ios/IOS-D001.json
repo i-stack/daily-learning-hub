@@ -3,7 +3,7 @@
   "work": "ios-internals",
   "id": "IOS-D001",
   "title": "RunLoop：事件循环与线程保活",
-  "date": "2026-09-01",
+  "date": "2026-08-10",
   "status": "completed",
   "chapter": "运行时与并发基础",
   "keywords": ["RunLoop", "CFRunLoop", "事件循环", "线程保活", "主线程"],

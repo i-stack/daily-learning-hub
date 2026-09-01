@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D017",
+  "title": "Core Animation 与 CATransaction：状态、动画与提交",
+  "date": "2026-08-26",
+  "status": "completed",
+  "chapter": "渲染机制",
+  "keywords": [
+    "Core Animation ",
+    " CATransaction",
+    "状态",
+    "动画",
+    "提交"
+  ],
+  "summary": "Core Animation 与 CATransaction：状态、动画与提交：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+  "sections": {
+    "original": "背景、API 与场景：Core Animation 与 CATransaction：状态、动画与提交 是 iOS 底层训练营 Day 17 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+    "explanation": "运行机制：model layer 保存目标状态，presentation layer 反映当前插值；CATransaction 聚合 Layer 修改。",
+    "coreIdea": "核心原理：model layer 保存目标状态，presentation layer 反映当前插值；CATransaction 聚合 Layer 修改。",
+    "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+    "applications": "工程实战：可中断动画从 presentation 读取当前位置，再同步 model 状态并建立新动画。",
+    "reflection": "常见坑与反思：只添加动画不更新 model 会回弹；事务完成不等于像素已经显示。",
+    "questions": [
+      "请脱稿解释“Core Animation 与 CATransaction：状态、动画与提交”解决的核心问题与主要 API。",
+      "画出本课从调用入口到底层结果的完整链路。",
+      "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+      "给出一个真实故障，并说明用什么证据验证根因。",
+      "什么条件下你会选择另一种实现？"
+    ],
+    "mastery": "一句话总结：model layer 保存目标状态，presentation layer 反映当前插值；CATransaction 聚合 Layer 修改。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 17,
+      "topic": "Core Animation 与 CATransaction：状态、动画与提交"
+    },
+    "source": "iOS 底层训练营历史课程 Day 1–23"
+  }
+}

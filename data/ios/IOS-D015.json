@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D015",
+  "title": "Operation：依赖、取消与状态管理",
+  "date": "2026-08-24",
+  "status": "completed",
+  "chapter": "系统调度",
+  "keywords": [
+    "Operation",
+    "依赖",
+    "取消",
+    "状态管理"
+  ],
+  "summary": "Operation：依赖、取消与状态管理：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+  "sections": {
+    "original": "背景、API 与场景：Operation：依赖、取消与状态管理 是 iOS 底层训练营 Day 15 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+    "explanation": "运行机制：OperationQueue 按 ready 与依赖调度；取消是协作信号，自定义异步 Operation 要维护执行/完成状态。",
+    "coreIdea": "核心原理：OperationQueue 按 ready 与依赖调度；取消是协作信号，自定义异步 Operation 要维护执行/完成状态。",
+    "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+    "applications": "工程实战：构建下载→解析→持久化依赖链，并在每个耗时阶段检查取消。",
+    "reflection": "常见坑与反思：误以为 cancel 会强停；状态机缺失会让队列永久等待。",
+    "questions": [
+      "请脱稿解释“Operation：依赖、取消与状态管理”解决的核心问题与主要 API。",
+      "画出本课从调用入口到底层结果的完整链路。",
+      "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+      "给出一个真实故障，并说明用什么证据验证根因。",
+      "什么条件下你会选择另一种实现？"
+    ],
+    "mastery": "一句话总结：OperationQueue 按 ready 与依赖调度；取消是协作信号，自定义异步 Operation 要维护执行/完成状态。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 15,
+      "topic": "Operation：依赖、取消与状态管理"
+    },
+    "source": "iOS 底层训练营历史课程 Day 1–23"
+  }
+}

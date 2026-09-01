@@ -4,7 +4,7 @@
     "work": "ios-internals",
     "id": "IOS-D001",
     "title": "RunLoop：事件循环与线程保活",
-    "date": "2026-09-01",
+    "date": "2026-08-10",
     "status": "completed",
     "chapter": "运行时与并发基础",
     "keywords": [
@@ -41,6 +41,847 @@
         "CFRunLoop Reference",
         "Foundation RunLoop Documentation"
       ]
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D002",
+    "title": "ARC：引用计数与对象生命周期",
+    "date": "2026-08-11",
+    "status": "completed",
+    "chapter": "内存管理",
+    "keywords": [
+      "ARC",
+      "引用计数",
+      "对象生命周期"
+    ],
+    "summary": "ARC：引用计数与对象生命周期：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：ARC：引用计数与对象生命周期 是 iOS 底层训练营 Day 2 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：strong/weak/unowned 与编译期插入的引用计数操作共同决定对象何时析构；weak 依赖运行时弱引用表自动置 nil。",
+      "coreIdea": "核心原理：strong/weak/unowned 与编译期插入的引用计数操作共同决定对象何时析构；weak 依赖运行时弱引用表自动置 nil。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：画出闭包、delegate、Timer 和缓存的所有权图，再用 Memory Graph 与 deinit 验证释放。",
+      "reflection": "常见坑与反思：weak 不是万能修复；unowned 的生命周期假设失败会崩溃；ARC 不能自动消除循环引用。",
+      "questions": [
+        "请脱稿解释“ARC：引用计数与对象生命周期”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：strong/weak/unowned 与编译期插入的引用计数操作共同决定对象何时析构；weak 依赖运行时弱引用表自动置 nil。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 2,
+        "topic": "ARC：引用计数与对象生命周期"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D003",
+    "title": "Block：闭包、捕获与异步编程",
+    "date": "2026-08-12",
+    "status": "completed",
+    "chapter": "内存管理",
+    "keywords": [
+      "Block",
+      "闭包",
+      "捕获",
+      "异步编程"
+    ],
+    "summary": "Block：闭包、捕获与异步编程：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Block：闭包、捕获与异步编程 是 iOS 底层训练营 Day 3 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：Block 把代码和捕获上下文封装为对象；逃逸后由栈复制到堆，捕获对象通常形成强引用。",
+      "coreIdea": "核心原理：Block 把代码和捕获上下文封装为对象；逃逸后由栈复制到堆，捕获对象通常形成强引用。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：为回调明确执行队列、取消语义和 capture list，并验证 owner→closure→owner 链。",
+      "reflection": "常见坑与反思：机械使用 weak self 可能丢失关键工作；闭包语法不保证回调线程。",
+      "questions": [
+        "请脱稿解释“Block：闭包、捕获与异步编程”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：Block 把代码和捕获上下文封装为对象；逃逸后由栈复制到堆，捕获对象通常形成强引用。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 3,
+        "topic": "Block：闭包、捕获与异步编程"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D004",
+    "title": "Runtime：Objective-C 动态能力的根基",
+    "date": "2026-08-13",
+    "status": "completed",
+    "chapter": "动态系统",
+    "keywords": [
+      "Runtime",
+      "Objective-C 动态能力的根基"
+    ],
+    "summary": "Runtime：Objective-C 动态能力的根基：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Runtime：Objective-C 动态能力的根基 是 iOS 底层训练营 Day 4 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：对象经 isa 找到类；objc_msgSend 先查缓存，再沿类层级寻找 SEL 对应的 IMP，失败后进入转发。",
+      "coreIdea": "核心原理：对象经 isa 找到类；objc_msgSend 先查缓存，再沿类层级寻找 SEL 对应的 IMP，失败后进入转发。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：用 Runtime API 和符号断点观察 SEL、Method、IMP 与一次真实消息查找。",
+      "reflection": "常见坑与反思：动态能力应收敛在基础设施边界；私有实现和全局 Hook 缺乏稳定契约。",
+      "questions": [
+        "请脱稿解释“Runtime：Objective-C 动态能力的根基”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：对象经 isa 找到类；objc_msgSend 先查缓存，再沿类层级寻找 SEL 对应的 IMP，失败后进入转发。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 4,
+        "topic": "Runtime：Objective-C 动态能力的根基"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D005",
+    "title": "KVC：键值编码的查找机制",
+    "date": "2026-08-14",
+    "status": "completed",
+    "chapter": "动态系统",
+    "keywords": [
+      "KVC",
+      "键值编码的查找机制"
+    ],
+    "summary": "KVC：键值编码的查找机制：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：KVC：键值编码的查找机制 是 iOS 底层训练营 Day 5 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：valueForKey/setValue 按约定查找访问器与 ivar，失败后进入 undefined-key 钩子。",
+      "coreIdea": "核心原理：valueForKey/setValue 按约定查找访问器与 ivar，失败后进入 undefined-key 钩子。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：把字符串映射隔离在 DTO/兼容层，对外部数据先校验 schema。",
+      "reflection": "常见坑与反思：拼写错误只在运行时暴露；直接写 ivar 会绕过属性语义。",
+      "questions": [
+        "请脱稿解释“KVC：键值编码的查找机制”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：valueForKey/setValue 按约定查找访问器与 ivar，失败后进入 undefined-key 钩子。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 5,
+        "topic": "KVC：键值编码的查找机制"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D006",
+    "title": "KVO：动态子类与观察机制",
+    "date": "2026-08-15",
+    "status": "completed",
+    "chapter": "动态系统",
+    "keywords": [
+      "KVO",
+      "动态子类",
+      "观察机制"
+    ],
+    "summary": "KVO：动态子类与观察机制：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：KVO：动态子类与观察机制 是 iOS 底层训练营 Day 6 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：自动 KVO 通常创建 NSKVONotifying 动态子类、改写 setter 并通过 isa 指向该子类。",
+      "coreIdea": "核心原理：自动 KVO 通常创建 NSKVONotifying 动态子类、改写 setter 并通过 isa 指向该子类。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：保存 observation token，验证解除观察、回调线程和 old/new/initial 选项。",
+      "reflection": "常见坑与反思：直接改 ivar 不会自动通知；KVO 隐藏控制流，不宜承载复杂领域状态。",
+      "questions": [
+        "请脱稿解释“KVO：动态子类与观察机制”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：自动 KVO 通常创建 NSKVONotifying 动态子类、改写 setter 并通过 isa 指向该子类。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 6,
+        "topic": "KVO：动态子类与观察机制"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D007",
+    "title": "AutoreleasePool：延迟释放与内存峰值",
+    "date": "2026-08-16",
+    "status": "completed",
+    "chapter": "内存管理",
+    "keywords": [
+      "AutoreleasePool",
+      "延迟释放",
+      "内存峰值"
+    ],
+    "summary": "AutoreleasePool：延迟释放与内存峰值：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：AutoreleasePool：延迟释放与内存峰值 是 iOS 底层训练营 Day 7 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：autorelease 对象记录在线程相关的 pool page，池 pop 时发送 release；主线程通常每轮 RunLoop 清池。",
+      "coreIdea": "核心原理：autorelease 对象记录在线程相关的 pool page，池 pop 时发送 release；主线程通常每轮 RunLoop 清池。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：在图片解码、序列化和大循环中设置小池，并用 Allocations 对比峰值。",
+      "reflection": "常见坑与反思：池不是 GC，也不能解决强引用环；后台长任务缺池会堆积临时对象。",
+      "questions": [
+        "请脱稿解释“AutoreleasePool：延迟释放与内存峰值”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：autorelease 对象记录在线程相关的 pool page，池 pop 时发送 release；主线程通常每轮 RunLoop 清池。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 7,
+        "topic": "AutoreleasePool：延迟释放与内存峰值"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D008",
+    "title": "Category：方法扩展与加载机制",
+    "date": "2026-08-17",
+    "status": "completed",
+    "chapter": "动态系统",
+    "keywords": [
+      "Category",
+      "方法扩展",
+      "加载机制"
+    ],
+    "summary": "Category：方法扩展与加载机制：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Category：方法扩展与加载机制 是 iOS 底层训练营 Day 8 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：镜像加载时 Runtime 把 Category 方法列表接入目标类；实例布局不变，所以不能直接新增 ivar。",
+      "coreIdea": "核心原理：镜像加载时 Runtime 把 Category 方法列表接入目标类；实例布局不变，所以不能直接新增 ivar。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：使用命名前缀和单一所有者；有状态扩展优先独立对象，必要时才用关联对象。",
+      "reflection": "常见坑与反思：同名方法覆盖顺序不可依赖；重型 +load 会拖慢启动。",
+      "questions": [
+        "请脱稿解释“Category：方法扩展与加载机制”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：镜像加载时 Runtime 把 Category 方法列表接入目标类；实例布局不变，所以不能直接新增 ivar。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 8,
+        "topic": "Category：方法扩展与加载机制"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D009",
+    "title": "Associated Object：不改变对象布局的扩展存储",
+    "date": "2026-08-18",
+    "status": "completed",
+    "chapter": "动态系统",
+    "keywords": [
+      "Associated Object",
+      "不改变对象布局的扩展存储"
+    ],
+    "summary": "Associated Object：不改变对象布局的扩展存储：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Associated Object：不改变对象布局的扩展存储 是 iOS 底层训练营 Day 9 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：Runtime 在对象外部以宿主和 key 维护关联表，策略决定 retain/copy/assign。",
+      "coreIdea": "核心原理：Runtime 在对象外部以宿主和 key 维护关联表，策略决定 retain/copy/assign。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：用唯一静态地址作 key，明确释放与线程安全；核心状态仍建模成真实类型。",
+      "reflection": "常见坑与反思：assign 可能悬垂，字符串 key 可能冲突，隐式状态会降低可发现性。",
+      "questions": [
+        "请脱稿解释“Associated Object：不改变对象布局的扩展存储”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：Runtime 在对象外部以宿主和 key 维护关联表，策略决定 retain/copy/assign。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 9,
+        "topic": "Associated Object：不改变对象布局的扩展存储"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D010",
+    "title": "Method Swizzling：方法交换、AOP 与安全边界",
+    "date": "2026-08-19",
+    "status": "completed",
+    "chapter": "动态系统",
+    "keywords": [
+      "Method Swizzling",
+      "方法交换",
+      "AOP ",
+      "安全边界"
+    ],
+    "summary": "Method Swizzling：方法交换、AOP 与安全边界：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Method Swizzling：方法交换、AOP 与安全边界 是 iOS 底层训练营 Day 10 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：交换改变 SEL 与 IMP 的映射；继承场景需先确保目标类有独立方法条目。",
+      "coreIdea": "核心原理：交换改变 SEL 与 IMP 的映射；继承场景需先确保目标类有独立方法条目。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：集中管理 Hook，保证只执行一次，并测试继承、重复加载和多个 SDK 同时交换。",
+      "reflection": "常见坑与反思：错误调用原实现会递归；全局行为依赖加载顺序，风险高于普通扩展。",
+      "questions": [
+        "请脱稿解释“Method Swizzling：方法交换、AOP 与安全边界”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：交换改变 SEL 与 IMP 的映射；继承场景需先确保目标类有独立方法条目。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 10,
+        "topic": "Method Swizzling：方法交换、AOP 与安全边界"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D011",
+    "title": "Message Forwarding：消息转发完整链路",
+    "date": "2026-08-20",
+    "status": "completed",
+    "chapter": "动态系统",
+    "keywords": [
+      "Message Forwarding",
+      "消息转发完整链路"
+    ],
+    "summary": "Message Forwarding：消息转发完整链路：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Message Forwarding：消息转发完整链路 是 iOS 底层训练营 Day 11 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：查找失败后依次经历动态解析、快速转发、方法签名与 NSInvocation 完整转发，最后才报无法识别。",
+      "coreIdea": "核心原理：查找失败后依次经历动态解析、快速转发、方法签名与 NSInvocation 完整转发，最后才报无法识别。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：实现小型代理并记录各阶段，确保签名、参数和返回值 ABI 一致。",
+      "reflection": "常见坑与反思：返回 self 会循环；吞掉未知消息会把编程错误推迟成数据错误。",
+      "questions": [
+        "请脱稿解释“Message Forwarding：消息转发完整链路”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：查找失败后依次经历动态解析、快速转发、方法签名与 NSInvocation 完整转发，最后才报无法识别。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 11,
+        "topic": "Message Forwarding：消息转发完整链路"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D012",
+    "title": "NSProxy：消息代理与弱代理设计",
+    "date": "2026-08-21",
+    "status": "completed",
+    "chapter": "动态系统",
+    "keywords": [
+      "NSProxy",
+      "消息代理",
+      "弱代理设计"
+    ],
+    "summary": "NSProxy：消息代理与弱代理设计：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：NSProxy：消息代理与弱代理设计 是 iOS 底层训练营 Day 12 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：NSProxy 通过方法签名和 forwardInvocation 转交消息；弱代理可打断 CADisplayLink/Timer 的强引用环。",
+      "coreIdea": "核心原理：NSProxy 通过方法签名和 forwardInvocation 转交消息；弱代理可打断 CADisplayLink/Timer 的强引用环。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：测试 target 存活、释放、返回值和 respondsToSelector 等 introspection 行为。",
+      "reflection": "常见坑与反思：target 消失后的返回语义必须明确；代理不能替代正确的生命周期管理。",
+      "questions": [
+        "请脱稿解释“NSProxy：消息代理与弱代理设计”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：NSProxy 通过方法签名和 forwardInvocation 转交消息；弱代理可打断 CADisplayLink/Timer 的强引用环。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 12,
+        "topic": "NSProxy：消息代理与弱代理设计"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D013",
+    "title": "NotificationCenter：一对多事件通信",
+    "date": "2026-08-22",
+    "status": "completed",
+    "chapter": "系统调度",
+    "keywords": [
+      "NotificationCenter",
+      "一对多事件通信"
+    ],
+    "summary": "NotificationCenter：一对多事件通信：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：NotificationCenter：一对多事件通信 是 iOS 底层训练营 Day 13 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：post 在调用线程同步遍历观察者；通知不自动切主线程，也不提供背压与持久化。",
+      "coreIdea": "核心原理：post 在调用线程同步遍历观察者；通知不自动切主线程，也不提供背压与持久化。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：集中定义名称和 payload，持有 block token，UIKit 更新前显式切主线程。",
+      "reflection": "常见坑与反思：把通知当命令总线会隐藏控制流；重复注册和弱类型 payload 难排查。",
+      "questions": [
+        "请脱稿解释“NotificationCenter：一对多事件通信”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：post 在调用线程同步遍历观察者；通知不自动切主线程，也不提供背压与持久化。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 13,
+        "topic": "NotificationCenter：一对多事件通信"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D014",
+    "title": "GCD：队列、任务、调度与死锁",
+    "date": "2026-08-23",
+    "status": "completed",
+    "chapter": "系统调度",
+    "keywords": [
+      "GCD",
+      "队列",
+      "任务",
+      "调度",
+      "死锁"
+    ],
+    "summary": "GCD：队列、任务、调度与死锁：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：GCD：队列、任务、调度与死锁 是 iOS 底层训练营 Day 14 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：队列描述任务顺序，不等于固定线程；sync 阻塞当前上下文，向当前串行队列 sync 会循环等待。",
+      "coreIdea": "核心原理：队列描述任务顺序，不等于固定线程；sync 阻塞当前上下文，向当前串行队列 sync 会循环等待。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：让共享状态归属单一串行队列，使用 queue-specific key 识别重入。",
+      "reflection": "常见坑与反思：并发队列不自动线程安全；semaphore 会阻塞线程；main.sync 可能自锁。",
+      "questions": [
+        "请脱稿解释“GCD：队列、任务、调度与死锁”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：队列描述任务顺序，不等于固定线程；sync 阻塞当前上下文，向当前串行队列 sync 会循环等待。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 14,
+        "topic": "GCD：队列、任务、调度与死锁"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D015",
+    "title": "Operation：依赖、取消与状态管理",
+    "date": "2026-08-24",
+    "status": "completed",
+    "chapter": "系统调度",
+    "keywords": [
+      "Operation",
+      "依赖",
+      "取消",
+      "状态管理"
+    ],
+    "summary": "Operation：依赖、取消与状态管理：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Operation：依赖、取消与状态管理 是 iOS 底层训练营 Day 15 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：OperationQueue 按 ready 与依赖调度；取消是协作信号，自定义异步 Operation 要维护执行/完成状态。",
+      "coreIdea": "核心原理：OperationQueue 按 ready 与依赖调度；取消是协作信号，自定义异步 Operation 要维护执行/完成状态。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：构建下载→解析→持久化依赖链，并在每个耗时阶段检查取消。",
+      "reflection": "常见坑与反思：误以为 cancel 会强停；状态机缺失会让队列永久等待。",
+      "questions": [
+        "请脱稿解释“Operation：依赖、取消与状态管理”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：OperationQueue 按 ready 与依赖调度；取消是协作信号，自定义异步 Operation 要维护执行/完成状态。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 15,
+        "topic": "Operation：依赖、取消与状态管理"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D016",
+    "title": "UIView 与 CALayer：像素如何从代码走向屏幕",
+    "date": "2026-08-25",
+    "status": "completed",
+    "chapter": "渲染机制",
+    "keywords": [
+      "UIView ",
+      " CALayer",
+      "像素如何从代码走向屏幕"
+    ],
+    "summary": "UIView 与 CALayer：像素如何从代码走向屏幕：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：UIView 与 CALayer：像素如何从代码走向屏幕 是 iOS 底层训练营 Day 16 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：UIView 协调交互与布局，CALayer 保存渲染状态；修改先标记，随后由 RunLoop 与事务批量提交。",
+      "coreIdea": "核心原理：UIView 协调交互与布局，CALayer 保存渲染状态；修改先标记，随后由 RunLoop 与事务批量提交。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：流式 UI 将 token 聚合为 50–100ms 批次，减少 layout 与 Layer Tree commit。",
+      "reflection": "常见坑与反思：高频 layoutIfNeeded 会破坏合并；frame、bounds、position 与 anchorPoint 不可混用。",
+      "questions": [
+        "请脱稿解释“UIView 与 CALayer：像素如何从代码走向屏幕”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：UIView 协调交互与布局，CALayer 保存渲染状态；修改先标记，随后由 RunLoop 与事务批量提交。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 16,
+        "topic": "UIView 与 CALayer：像素如何从代码走向屏幕"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D017",
+    "title": "Core Animation 与 CATransaction：状态、动画与提交",
+    "date": "2026-08-26",
+    "status": "completed",
+    "chapter": "渲染机制",
+    "keywords": [
+      "Core Animation ",
+      " CATransaction",
+      "状态",
+      "动画",
+      "提交"
+    ],
+    "summary": "Core Animation 与 CATransaction：状态、动画与提交：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Core Animation 与 CATransaction：状态、动画与提交 是 iOS 底层训练营 Day 17 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：model layer 保存目标状态，presentation layer 反映当前插值；CATransaction 聚合 Layer 修改。",
+      "coreIdea": "核心原理：model layer 保存目标状态，presentation layer 反映当前插值；CATransaction 聚合 Layer 修改。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：可中断动画从 presentation 读取当前位置，再同步 model 状态并建立新动画。",
+      "reflection": "常见坑与反思：只添加动画不更新 model 会回弹；事务完成不等于像素已经显示。",
+      "questions": [
+        "请脱稿解释“Core Animation 与 CATransaction：状态、动画与提交”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：model layer 保存目标状态，presentation layer 反映当前插值；CATransaction 聚合 Layer 修改。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 17,
+        "topic": "Core Animation 与 CATransaction：状态、动画与提交"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D018",
+    "title": "Rendering Pipeline：从 Layer Tree 到最终显示",
+    "date": "2026-08-27",
+    "status": "completed",
+    "chapter": "渲染机制",
+    "keywords": [
+      "Rendering Pipeline",
+      "从 Layer Tree 到最终显示"
+    ],
+    "summary": "Rendering Pipeline：从 Layer Tree 到最终显示：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Rendering Pipeline：从 Layer Tree 到最终显示 是 iOS 底层训练营 Day 18 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：Layer Tree 经事务提交到 Render Server，CPU 完成布局/绘制/解码，GPU 合成纹理并赶在 VSync 前显示。",
+      "coreIdea": "核心原理：Layer Tree 经事务提交到 Render Server，CPU 完成布局/绘制/解码，GPU 合成纹理并赶在 VSync 前显示。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：联合 Time Profiler、Core Animation 与 Hitches 判断瓶颈属于主线程、CPU 栅格化还是 GPU 合成。",
+      "reflection": "常见坑与反思：不能把所有掉帧归因于 GPU；平均 FPS 会掩盖单次长 hitch。",
+      "questions": [
+        "请脱稿解释“Rendering Pipeline：从 Layer Tree 到最终显示”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：Layer Tree 经事务提交到 Render Server，CPU 完成布局/绘制/解码，GPU 合成纹理并赶在 VSync 前显示。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 18,
+        "topic": "Rendering Pipeline：从 Layer Tree 到最终显示"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D019",
+    "title": "Auto Layout：约束求解、延迟布局与 Self-Sizing",
+    "date": "2026-08-28",
+    "status": "completed",
+    "chapter": "渲染机制",
+    "keywords": [
+      "Auto Layout",
+      "约束求解",
+      "延迟布局",
+      " Self-Sizing"
+    ],
+    "summary": "Auto Layout：约束求解、延迟布局与 Self-Sizing：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Auto Layout：约束求解、延迟布局与 Self-Sizing 是 iOS 底层训练营 Day 19 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：约束变化使布局树失效，系统在后续阶段批量求解；Self-Sizing 需要完整可判定的横纵约束链。",
+      "coreIdea": "核心原理：约束变化使布局树失效，系统在后续阶段批量求解；Self-Sizing 需要完整可判定的横纵约束链。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：缓存聊天 Cell 的排版测量，合并内容更新，避免高频 remake 和强制布局。",
+      "reflection": "常见坑与反思：约束冲突、估算高度抖动与复用问题现象相似，必须用证据区分。",
+      "questions": [
+        "请脱稿解释“Auto Layout：约束求解、延迟布局与 Self-Sizing”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：约束变化使布局树失效，系统在后续阶段批量求解；Self-Sizing 需要完整可判定的横纵约束链。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 19,
+        "topic": "Auto Layout：约束求解、延迟布局与 Self-Sizing"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D020",
+    "title": "列表复用：UITableView 与 UICollectionView 性能机制",
+    "date": "2026-08-29",
+    "status": "completed",
+    "chapter": "渲染机制",
+    "keywords": [
+      "列表复用",
+      "UITableView ",
+      " UICollectionView 性能机制"
+    ],
+    "summary": "列表复用：UITableView 与 UICollectionView 性能机制：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：列表复用：UITableView 与 UICollectionView 性能机制 是 iOS 底层训练营 Day 20 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：列表只维护可见及预取 Cell；离屏对象进入复用池，布局对象按可见区域提供几何信息。",
+      "coreIdea": "核心原理：列表只维护可见及预取 Cell；离屏对象进入复用池，布局对象按可见区域提供几何信息。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：prepareForReuse 取消旧任务，以稳定 itemID 校验异步回写并缓存高度。",
+      "reflection": "常见坑与反思：indexPath 不是稳定身份；异步结果串 Cell 和每 token reload 都会造成错误或卡顿。",
+      "questions": [
+        "请脱稿解释“列表复用：UITableView 与 UICollectionView 性能机制”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：列表只维护可见及预取 Cell；离屏对象进入复用池，布局对象按可见区域提供几何信息。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 20,
+        "topic": "列表复用：UITableView 与 UICollectionView 性能机制"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D021",
+    "title": "Diffable Data Source：Identity、Snapshot 与一致性",
+    "date": "2026-08-30",
+    "status": "completed",
+    "chapter": "渲染机制",
+    "keywords": [
+      "Diffable Data Source",
+      "Identity",
+      "Snapshot ",
+      "一致性"
+    ],
+    "summary": "Diffable Data Source：Identity、Snapshot 与一致性：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Diffable Data Source：Identity、Snapshot 与一致性 是 iOS 底层训练营 Day 21 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：Snapshot 以稳定 Hashable identity 描述期望状态，系统 diff 后生成安全更新；内容变化不等于身份变化。",
+      "coreIdea": "核心原理：Snapshot 以稳定 Hashable identity 描述期望状态，系统 diff 后生成安全更新；内容变化不等于身份变化。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：消息使用不可变 ID；流式文本节流后 reconfigure，结构变化才更新 Snapshot。",
+      "reflection": "常见坑与反思：可变字段参与 hash、重复 ID、并发 apply 和高频全量 diff 都会破坏一致性。",
+      "questions": [
+        "请脱稿解释“Diffable Data Source：Identity、Snapshot 与一致性”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：Snapshot 以稳定 Hashable identity 描述期望状态，系统 diff 后生成安全更新；内容变化不等于身份变化。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 21,
+        "topic": "Diffable Data Source：Identity、Snapshot 与一致性"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D022",
+    "title": "Instruments：从掉帧建立性能证据链",
+    "date": "2026-08-31",
+    "status": "completed",
+    "chapter": "性能工程",
+    "keywords": [
+      "Instruments",
+      "从掉帧建立性能证据链"
+    ],
+    "summary": "Instruments：从掉帧建立性能证据链：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+    "sections": {
+      "original": "背景、API 与场景：Instruments：从掉帧建立性能证据链 是 iOS 底层训练营 Day 22 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+      "explanation": "运行机制：从 hitch 时间窗关联主线程栈、布局/文本/解码耗时和 GPU 指标；采样占比本身不是因果。",
+      "coreIdea": "核心原理：从 hitch 时间窗关联主线程栈、布局/文本/解码耗时和 GPU 指标；采样占比本身不是因果。",
+      "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+      "applications": "工程实战：为 SSE、Markdown、Cell 测量、Snapshot 和滚动加 signpost，固定设备与数据做前后对照。",
+      "reflection": "常见坑与反思：Debug 数据、单张火焰图、只看平均值和没有复测都不足以下结论。",
+      "questions": [
+        "请脱稿解释“Instruments：从掉帧建立性能证据链”解决的核心问题与主要 API。",
+        "画出本课从调用入口到底层结果的完整链路。",
+        "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+        "给出一个真实故障，并说明用什么证据验证根因。",
+        "什么条件下你会选择另一种实现？"
+      ],
+      "mastery": "一句话总结：从 hitch 时间窗关联主线程栈、布局/文本/解码耗时和 GPU 指标；采样占比本身不是因果。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 22,
+        "topic": "Instruments：从掉帧建立性能证据链"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D023",
+    "title": "最终知识地图：从对象、调度到渲染与性能",
+    "date": "2026-09-01",
+    "status": "completed",
+    "chapter": "综合知识地图",
+    "keywords": [
+      "知识地图",
+      "对象生命周期",
+      "动态消息",
+      "任务调度",
+      "渲染性能"
+    ],
+    "summary": "把 Day 1–22 收束为所有权、动态消息、任务调度、渲染性能四层，并用一条真实调用链检验知识是否已经连成系统。",
+    "sections": {
+      "original": "背景与范围：Day 1–22 已覆盖 RunLoop、ARC、Block、Runtime、KVC/KVO、AutoreleasePool、Category、Associated Object、Swizzling、消息转发、NSProxy、Notification、GCD、Operation、UIView/CALayer、Core Animation、渲染管线、Auto Layout、列表复用、Diffable Data Source 与 Instruments。Day 23 不再增加孤立名词，而是把它们组织成可用于设计与排障的最终知识地图。",
+      "explanation": "四层地图：第一层是对象与所有权，回答谁持有谁、何时释放；第二层是动态消息与通信，回答调用如何找到实现、对象如何解耦协作；第三层是任务调度，回答代码何时、在哪个执行上下文运行；第四层是渲染与性能，回答状态如何经过布局、事务、栅格化和合成成为屏幕像素。",
+      "coreIdea": "纵向调用链：Touch Event→RunLoop 唤醒→UIResponder/Target-Action→objc_msgSend→ViewModel→Network→GCD/Operation 后台解析→主线程状态合并→Diffable reconfigure→Auto Layout→CALayer→CATransaction Commit→Render Server→GPU Composition→Display。每个箭头都必须回答调用者、线程、同步/异步、对象所有权和可观测信号。",
+      "connections": "Apple 的总体设计不是追求单一机制万能，而是分层：ARC 管确定性生命周期，Runtime 提供动态扩展，RunLoop 与队列协调事件和任务，Retained Mode Layer Tree 批量提交视觉状态，Render Server 隔离最终合成，Instruments 负责把跨层猜测变成证据。架构质量取决于边界是否明确，而不是使用了多少高级 API。",
+      "applications": "综合实战：选择聊天页『点击发送并流式显示』作为贯穿实验。为触摸到网络请求、SSE 接收、Markdown 解析、Cell 测量、Snapshot/reconfigure、自动滚动和 CATransaction 分别标注线程、所有权与 signpost；固定设备和数据录制基线，再对最重阶段做一次最小优化并复测。",
+      "reflection": "最终复盘四问：一、谁持有谁，是否存在环或提前释放？二、代码在哪里执行，队列、线程和 RunLoop 是否混淆？三、状态身份是什么，messageID 与 indexPath 是否混淆？四、结论凭什么成立，是否有调用栈、signpost、内存图或帧指标支持？任何一问答不清，知识地图就仍有断点。",
+      "questions": [
+        "画出『点击发送→流式文本显示』的完整链路，并为每个箭头标注线程与同步/异步语义。",
+        "在这条链路中，ARC、Block、Runtime、RunLoop、GCD 和 CATransaction 分别承担什么职责？",
+        "为什么 indexPath 不能作为流式消息的稳定身份？Diffable Data Source 应如何更新内容？",
+        "一次掉帧发生后，如何依次排除主线程阻塞、Auto Layout、文本排版、图片解码和 GPU 合成？",
+        "设计一个实验，同时证明对象没有泄漏、任务没有串行瓶颈、UI 更新没有超过帧预算。",
+        "如果只能保留四个诊断问题，你会如何使用『所有权、执行上下文、状态身份、验证证据』？"
+      ],
+      "mastery": "一句话总结：真正的 iOS 底层能力，是沿一条真实业务链同时解释对象为何存在、代码为何此时执行、状态如何抵达屏幕，以及证据如何推翻错误归因。掌握标准：60 分能画出四层地图；80 分能定位跨层故障并指出最可能断点；100 分能设计所有权、调度、状态和观测边界清晰的系统，并用 Instruments 数据证明设计有效。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 23,
+        "topic": "最终知识地图：从对象、调度到渲染与性能"
+      },
+      "source": "iOS 底层训练营历史课程 Day 1–23"
     }
   }
 ]

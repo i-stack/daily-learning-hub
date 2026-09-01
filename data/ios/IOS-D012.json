@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D012",
+  "title": "NSProxy：消息代理与弱代理设计",
+  "date": "2026-08-21",
+  "status": "completed",
+  "chapter": "动态系统",
+  "keywords": [
+    "NSProxy",
+    "消息代理",
+    "弱代理设计"
+  ],
+  "summary": "NSProxy：消息代理与弱代理设计：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+  "sections": {
+    "original": "背景、API 与场景：NSProxy：消息代理与弱代理设计 是 iOS 底层训练营 Day 12 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+    "explanation": "运行机制：NSProxy 通过方法签名和 forwardInvocation 转交消息；弱代理可打断 CADisplayLink/Timer 的强引用环。",
+    "coreIdea": "核心原理：NSProxy 通过方法签名和 forwardInvocation 转交消息；弱代理可打断 CADisplayLink/Timer 的强引用环。",
+    "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+    "applications": "工程实战：测试 target 存活、释放、返回值和 respondsToSelector 等 introspection 行为。",
+    "reflection": "常见坑与反思：target 消失后的返回语义必须明确；代理不能替代正确的生命周期管理。",
+    "questions": [
+      "请脱稿解释“NSProxy：消息代理与弱代理设计”解决的核心问题与主要 API。",
+      "画出本课从调用入口到底层结果的完整链路。",
+      "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+      "给出一个真实故障，并说明用什么证据验证根因。",
+      "什么条件下你会选择另一种实现？"
+    ],
+    "mastery": "一句话总结：NSProxy 通过方法签名和 forwardInvocation 转交消息；弱代理可打断 CADisplayLink/Timer 的强引用环。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 12,
+      "topic": "NSProxy：消息代理与弱代理设计"
+    },
+    "source": "iOS 底层训练营历史课程 Day 1–23"
+  }
+}

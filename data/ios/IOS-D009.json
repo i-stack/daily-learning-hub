@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D009",
+  "title": "Associated Object：不改变对象布局的扩展存储",
+  "date": "2026-08-18",
+  "status": "completed",
+  "chapter": "动态系统",
+  "keywords": [
+    "Associated Object",
+    "不改变对象布局的扩展存储"
+  ],
+  "summary": "Associated Object：不改变对象布局的扩展存储：从 API、底层机制、设计取舍到工程验证建立完整理解。",
+  "sections": {
+    "original": "背景、API 与场景：Associated Object：不改变对象布局的扩展存储 是 iOS 底层训练营 Day 9 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。",
+    "explanation": "运行机制：Runtime 在对象外部以宿主和 key 维护关联表，策略决定 retain/copy/assign。",
+    "coreIdea": "核心原理：Runtime 在对象外部以宿主和 key 维护关联表，策略决定 retain/copy/assign。",
+    "connections": "Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。",
+    "applications": "工程实战：用唯一静态地址作 key，明确释放与线程安全；核心状态仍建模成真实类型。",
+    "reflection": "常见坑与反思：assign 可能悬垂，字符串 key 可能冲突，隐式状态会降低可发现性。",
+    "questions": [
+      "请脱稿解释“Associated Object：不改变对象布局的扩展存储”解决的核心问题与主要 API。",
+      "画出本课从调用入口到底层结果的完整链路。",
+      "Apple 为什么采用这种设计？它换来了什么，又付出了什么？",
+      "给出一个真实故障，并说明用什么证据验证根因。",
+      "什么条件下你会选择另一种实现？"
+    ],
+    "mastery": "一句话总结：Runtime 在对象外部以宿主和 key 维护关联表，策略决定 retain/copy/assign。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 9,
+      "topic": "Associated Object：不改变对象布局的扩展存储"
+    },
+    "source": "iOS 底层训练营历史课程 Day 1–23"
+  }
+}
