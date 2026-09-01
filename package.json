@@ -5,9 +5,11 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node scripts/check.mjs",
-    "progress": "node scripts/progress.mjs"
+    "progress": "node scripts/progress.mjs",
+    "test": "node --test scripts/*.test.mjs"
   },
   "dependencies": {
-    "katex": "^0.18.5"
+    "katex": "^0.18.5",
+    "markdown-it": "^15.0.1"
   }
 }

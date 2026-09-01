@@ -11,6 +11,8 @@
 
 所有课程共享 `schemaVersion`、`work`、`id`、`title`、`date`、`status`、`chapter`、`keywords`、`summary` 与 `sections`；专题特有信息可增加 `extensions`。
 
+`sections` 中的字符串按 Markdown 渲染，支持标题、段落、列表、引用、链接、图片、表格、行内代码、围栏代码块和删除线。原始 HTML 默认禁用。数学公式使用 `$...$` 或 `$$...$$`，化学式可使用 `\ce{...}`，例如 `$\ce{2H2 + O2 -> 2H2O}$`；Mermaid 图使用 ```` ```mermaid ```` 围栏代码块。数组形式的 section 仍表示有序列表，其单项支持行内 Markdown。
+
 ## 每日发布的进度规则
 
 每个专题都只以 `data/<key>/` 中已发布课程 JSON 的最大编号为进度真值，不使用聊天记录、网页生成物或 `index.json` 中的编号。发布前运行：
