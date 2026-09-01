@@ -6,5 +6,8 @@
     "build": "node scripts/build.mjs",
     "check": "node scripts/check.mjs",
     "progress": "node scripts/progress.mjs"
+  },
+  "dependencies": {
+    "katex": "^0.18.5"
   }
 }

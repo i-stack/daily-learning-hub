@@ -1,0 +1,17 @@
+# 依赖
+node_modules/
+
+# 环境变量与密钥
+.env
+.env.*
+
+# 日志
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# 编辑器 / IDE
+.vscode/
+.idea/

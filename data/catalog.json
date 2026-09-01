@@ -6,7 +6,8 @@
     "shortTitle": "阴符经",
     "description": "从原文出发，理解天道、机制与行动之间的关系。",
     "category": "中华经典",
-    "status": "active"
+    "status": "active",
+    "leadKey": "original"
   },
   {
     "key": "ddj",
@@ -15,7 +16,8 @@
     "shortTitle": "道德经",
     "description": "对读传世本与出土文献，在文字差异、哲学结构与现实实践之间建立连接。",
     "category": "中华经典",
-    "status": "active"
+    "status": "active",
+    "leadKey": "original"
   },
   {
     "key": "yijing",
@@ -25,7 +27,8 @@
     "shortTitle": "易经",
     "description": "依六十四卦次序，从卦爻原文、卦象结构与训诂争议进入变化、时位与行动的智慧。",
     "category": "中华经典",
-    "status": "active"
+    "status": "active",
+    "leadKey": "original"
   },
   {
     "key": "ios",
