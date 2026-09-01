@@ -36,6 +36,16 @@
         "ordinal": 1,
         "topic": "RunLoop：事件循环与线程保活"
       },
+      "diagrams": [
+        {
+          "title": "RunLoop 一次循环路径",
+          "code": "graph TD\n  A[RunLoop 运行] --> B{该 Mode 有事件源?}\n  B -- 否 --> Z[立即返回]\n  B -- 是 --> C[通知 Observer 即将进入]\n  C --> D[处理 Timer 与输入源]\n  D --> E[无待办任务时进入内核休眠]\n  E --> F{端口消息 / 定时器到期 / 显式唤醒?}\n  F -- 否 --> E\n  F -- 是 --> G[唤醒并处理事件]\n  G --> H{是否停止?}\n  H -- 否 --> C\n  H -- 是 --> I[CFRunLoopStop 退出]"
+        },
+        {
+          "title": "线程保活的必要条件",
+          "code": "flowchart LR\n  subgraph 保活线程\n    S[有效事件源或端口] --> R[RunLoop 运行]\n    R --> T[autoreleasepool 包裹循环]\n    T --> X[明确停止标记与退出路径]\n  end\n  subgraph 反例\n    N1[while true 空转] --> N2[CPU 占满]\n    N3[无事件源直接 run] --> N4[立即退出]\n  end"
+        }
+      ],
       "references": [
         "Apple Core Foundation Run Loop Programming Guide",
         "CFRunLoop Reference",

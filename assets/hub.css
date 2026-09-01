@@ -24,6 +24,16 @@
 .collection-card p { margin: 0; color: var(--muted); line-height: 1.7; }
 .section-title { font-size: 28px; margin: 0 0 22px; }
 
+.lesson-section pre.mermaid {
+  overflow-x: auto;
+  margin: 12px 0 24px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  border-radius: 4px;
+}
+.lesson-section pre.mermaid svg { max-width: none; }
+
 @media (max-width: 720px) {
   .collection-grid { grid-template-columns: 1fr; }
 }
