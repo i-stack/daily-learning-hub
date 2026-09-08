@@ -56,3 +56,19 @@ test('keeps array items inline and hardens external links', () => {
   assert.match(html, /target="_blank"/);
   assert.match(html, /rel="noopener noreferrer"/);
 });
+
+test('renders bold tags that directly abut CJK text after a fullwidth colon', () => {
+  // `**标签：**紧贴汉字` 在 CommonMark 中因闭合分隔符不满足规则而原样输出，这里应修复为加粗。
+  const html = renderMarkdown('**版本说明：**本课依据通行约三百字本。\n\n**字面义：**“杀机”可先按机势理解。\n\n**注疏义：**历代解释取向不同。');
+  assert.match(html, /<strong>版本说明：<\/strong>本课依据/);
+  assert.match(html, /<strong>字面义：<\/strong>“杀机”/);
+  assert.match(html, /<strong>注疏义：<\/strong>历代解释/);
+  assert.doesNotMatch(html, /\*\*/);
+});
+
+test('does not disturb ordinary emphasis, code spans, or inline rendering', () => {
+  assert.equal(renderMarkdown('**注：**abc 与 `**字面**` 保留。').includes('<strong>注：</strong>abc'), true);
+  assert.equal(renderInline('**版：**正文'), '<strong>版：</strong>正文');
+  const plain = renderMarkdown('普通 **加粗** 与 *斜体* 不受影响。');
+  assert.match(plain, /普通 <strong>加粗<\/strong> 与 <em>斜体<\/em> 不受影响。/);
+});

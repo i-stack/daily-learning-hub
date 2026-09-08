@@ -93,11 +93,43 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
 export const hasMath = text => /\$\$[\s\S]+?\$\$|\$[^$\n]+?\$/.test(String(text ?? ''));
 export const hasMermaid = text => /^```mermaid\s*$/im.test(String(text ?? ''));
 
+// —— 中文排版加粗兼容 ——
+// CommonMark 强调规则要求：闭合分隔符 `**` 若前随标点（如全角“：”），则后随必须是空白或标点。
+// 因而 `**版本说明：**本课…` 这类“标签：+ 紧贴汉字”写法不会被渲染成加粗，而是原样输出。
+// 这里把这类真正会失败的强标签先占位取出，渲染完成后还原为 <strong>，不干扰其余正常 Markdown。
+const cjkStrongRe = /\*\*([^*\n]*\p{P})\*\*(?=[^\p{P}\s])/gu;
+
+const protectCjkStrong = text => {
+  const raw = String(text ?? '');
+  const stashed = [];
+  let out = '';
+  let last = 0;
+  for (const m of raw.matchAll(cjkStrongRe)) {
+    out += raw.slice(last, m.index);
+    stashed.push(m[1]);
+    out += `\uE000${stashed.length - 1}\uE001`;
+    last = m.index + m[0].length;
+  }
+  out += raw.slice(last);
+  return { text: out, stashed };
+};
+
+const restoreCjkStrong = (html, stashed) => html.replace(
+  /\uE000(\d+)\uE001/g,
+  (_, i) => `<strong>${md.utils.escapeHtml(stashed[Number(i)])}</strong>`,
+);
+
+const withCjkStrong = render => text => {
+  if (text == null) return '';
+  const { text: t, stashed } = protectCjkStrong(String(text));
+  return restoreCjkStrong(render(t), stashed);
+};
+
 /** 渲染完整块级 Markdown；原始 HTML 被禁用并作为普通文本转义。 */
-export const renderMarkdown = text => text == null ? '' : md.render(String(text));
+export const renderMarkdown = withCjkStrong(t => md.render(t));
 
 /** 渲染列表项等不应产生外层段落的行内 Markdown。 */
-export const renderInline = text => text == null ? '' : md.renderInline(String(text));
+export const renderInline = withCjkStrong(t => md.renderInline(t));
 
 // 保留原公开名称，避免外部脚本因升级失效。
 export const renderRich = renderInline;
