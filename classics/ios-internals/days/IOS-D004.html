@@ -1,8 +1,703 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Runtime：Objective-C 动态能力的根基：从 API、底层机制、设计取舍到工程验证建立完整理解。"><title>Runtime：Objective-C 动态能力的根基｜每日学习库</title><link rel="stylesheet" href="../../../assets/styles.css"><link rel="stylesheet" href="../../../assets/hub.css"></head><body><header class="shell site-head"><a class="brand" href="../../../index.html">每日学习库</a><nav class="head-links"><a href="../../../index.html#collections">学习专题</a><a href="../../../index.html#lessons">全部内容</a></nav></header><main class="shell"><div class="breadcrumb"><a href="../../../index.html">每日学习库</a> › <a href="../index.html">iOS 底层训练营</a> › IOS-D004</div><header class="entry-head"><div class="eyebrow">IOS-D004</div><h1>Runtime：Objective-C 动态能力的根基</h1><div class="meta">动态系统 · 2026-08-13 · Runtime / Objective-C 动态能力的根基</div></header><div class="entry-grid"><aside class="toc"><a href="#original">01 背景与 API</a><a href="#explanation">02 运行机制</a><a href="#coreIdea">03 底层原理</a><a href="#connections">04 设计与取舍</a><a href="#applications">05 工程实战</a><a href="#reflection">06 常见坑与反思</a><a href="#questions">07 知识验收</a><a href="#mastery">08 掌握标准</a></aside><article><p class="hero-copy">Runtime：Objective-C 动态能力的根基：从 API、底层机制、设计取舍到工程验证建立完整理解。</p><section class="lesson-section" id="original"><h2>01 背景与 API</h2><div class="markdown-body "><p>背景、API 与场景：Runtime：Objective-C 动态能力的根基 是 iOS 底层训练营 Day 4 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。</p>
-</div></section><section class="lesson-section" id="explanation"><h2>02 运行机制</h2><div class="markdown-body "><p>运行机制：对象经 isa 找到类；objc_msgSend 先查缓存，再沿类层级寻找 SEL 对应的 IMP，失败后进入转发。</p>
-</div></section><section class="lesson-section" id="coreIdea"><h2>03 底层原理</h2><div class="markdown-body "><p>核心原理：对象经 isa 找到类；objc_msgSend 先查缓存，再沿类层级寻找 SEL 对应的 IMP，失败后进入转发。</p>
-</div></section><section class="lesson-section" id="connections"><h2>04 设计与取舍</h2><div class="markdown-body "><p>Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。</p>
-</div></section><section class="lesson-section" id="applications"><h2>05 工程实战</h2><div class="markdown-body "><p>工程实战：用 Runtime API 和符号断点观察 SEL、Method、IMP 与一次真实消息查找。</p>
-</div></section><section class="lesson-section" id="reflection"><h2>06 常见坑与反思</h2><div class="markdown-body "><p>常见坑与反思：动态能力应收敛在基础设施边界；私有实现和全局 Hook 缺乏稳定契约。</p>
-</div></section><section class="lesson-section" id="questions"><h2>07 知识验收</h2><ol><li>请脱稿解释“Runtime：Objective-C 动态能力的根基”解决的核心问题与主要 API。</li><li>画出本课从调用入口到底层结果的完整链路。</li><li>Apple 为什么采用这种设计？它换来了什么，又付出了什么？</li><li>给出一个真实故障，并说明用什么证据验证根因。</li><li>什么条件下你会选择另一种实现？</li></ol></section><section class="lesson-section" id="mastery"><h2>08 掌握标准</h2><div class="markdown-body "><p>一句话总结：对象经 isa 找到类；objc_msgSend 先查缓存，再沿类层级寻找 SEL 对应的 IMP，失败后进入转发。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。</p>
-</div></section><nav class="lesson-nav"><a href="IOS-D003.html">← Block：闭包、捕获与异步编程</a><a href="../index.html">返回专题目录</a><a href="IOS-D005.html">KVC：键值编码的查找机制 →</a></nav></article></div></main><footer><div class="shell">结构化数据是唯一事实源 · 让每一次定时学习持续积累</div></footer></body></html>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Runtime 把「调用哪个方法」从编译期推迟到运行期。本课从 objc_object / objc_class 的内存布局出发，打通 isa、元类、cache_t 与 objc_msgSend 的查找链路，说明 KVO、Category、Swizzling、字典转模型等上层能力共同的底层支点，并给出可复现的观察实验与工程护栏。"><title>Runtime：Objective-C 动态能力的根基｜每日学习库</title><link rel="stylesheet" href="../../../assets/styles.css"><link rel="stylesheet" href="../../../assets/hub.css"><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script><script>addEventListener('DOMContentLoaded',()=>{mermaid.initialize({startOnLoad:true});});</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.css"></head><body><header class="shell site-head"><a class="brand" href="../../../index.html">每日学习库</a><nav class="head-links"><a href="../../../index.html#collections">学习专题</a><a href="../../../index.html#lessons">全部内容</a></nav></header><main class="shell"><div class="breadcrumb"><a href="../../../index.html">每日学习库</a> › <a href="../index.html">iOS 底层训练营</a> › IOS-D004</div><header class="entry-head"><div class="eyebrow">IOS-D004</div><h1>Runtime：Objective-C 动态能力的根基</h1><div class="meta">动态系统 · 2026-08-13 · Runtime / objc_msgSend / isa / 元类 / cache_t / class_ro_t / Tagged Pointer / Type Encodings / objc4</div></header><div class="entry-grid"><aside class="toc"><a href="#original">01 背景与 API</a><a href="#explanation">02 运行机制</a><a href="#coreIdea">03 底层原理</a><a href="#connections">04 设计与取舍</a><a href="#applications">05 工程实战</a><a href="#reflection">06 常见坑与反思</a><a href="#questions">07 知识验收</a><a href="#mastery">08 掌握标准</a></aside><article><p class="hero-copy">Runtime 把「调用哪个方法」从编译期推迟到运行期。本课从 objc_object / objc_class 的内存布局出发，打通 isa、元类、cache_t 与 objc_msgSend 的查找链路，说明 KVO、Category、Swizzling、字典转模型等上层能力共同的底层支点，并给出可复现的观察实验与工程护栏。</p><section class="lesson-section" id="original"><h2>01 背景与 API</h2><div class="markdown-body "><h3>要解决的问题</h3>
+<p>C 语言的函数调用在<strong>编译期<strong>就已经绑定地址：编译器知道 `foo()` 跳到哪里。但 Objective-C 需要的是「</strong>运行时</strong>才知道该执行什么」——因为方法可以被分类添加、可以被 KVO 替换、可以被转发给别的对象的、甚至可以在运行时凭空生成。</p>
+<p>Runtime（libobjc.A.dylib，苹果开源为 objc4）就是支撑这套动态性的运行时库。它不是可选组件，而是<strong>每一个 OC 方法调用都要经过的必经路径</strong>。</p>
+<h3>三个层次</h3>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>内容</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>语言层</strong></td>
+<td>编译器把语法翻译成 runtime 调用</td>
+<td><code>[obj foo]</code> → <code>objc_msgSend(obj, @selector(foo))</code></td>
+</tr>
+<tr>
+<td><strong>API 层</strong></td>
+<td><code>objc/runtime.h</code> 暴露的 C 函数</td>
+<td><code>class_addMethod</code>、<code>method_exchangeImplementations</code></td>
+</tr>
+<tr>
+<td><strong>实现层</strong></td>
+<td>汇编与 C 的查找逻辑</td>
+<td><code>_objc_msgSend</code>、<code>lookUpImpOrForward</code>、<code>cache_t</code></td>
+</tr>
+</tbody>
+</table>
+<h3>核心类型</h3>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>定义</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>struct objc_object *</code></td>
+<td>任何对象；<strong>没有 <code>*</code></strong></td>
+</tr>
+<tr>
+<td><code>Class</code></td>
+<td><code>struct objc_class *</code></td>
+<td>类对象</td>
+</tr>
+<tr>
+<td><code>SEL</code></td>
+<td><code>struct objc_selector *</code></td>
+<td>选择器，本质是 uniquing 后的字符串地址</td>
+</tr>
+<tr>
+<td><code>IMP</code></td>
+<td><code>id (*)(id, SEL, ...)</code></td>
+<td>方法实现指针</td>
+</tr>
+<tr>
+<td><code>Method</code></td>
+<td><code>struct method_t *</code></td>
+<td>方法对象（SEL + types + IMP）</td>
+</tr>
+</tbody>
+</table>
+<h3>常用 API 全景</h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>类与元类</td>
+<td><code>object_getClass</code>、<code>class_getSuperclass</code>、<code>class_isMetaClass</code>、<code>objc_allocateClassPair</code> / <code>objc_registerClassPair</code>、<code>objc_getMetaClass</code></td>
+</tr>
+<tr>
+<td>方法</td>
+<td><code>class_getInstanceMethod</code>、<code>class_getClassMethod</code>、<code>class_addMethod</code>、<code>class_replaceMethod</code>、<code>method_getName</code>、<code>method_getImplementation</code>、<code>method_getTypeEncoding</code>、<code>method_setImplementation</code>、<code>method_exchangeImplementations</code>、<code>class_respondsToSelector</code></td>
+</tr>
+<tr>
+<td>列表遍历</td>
+<td><code>class_copyMethodList</code>、<code>class_copyIvarList</code>、<code>class_copyPropertyList</code>、<code>class_copyProtocolList</code>、<code>protocol_copyMethodDescriptionList</code></td>
+</tr>
+<tr>
+<td>成员变量</td>
+<td><code>object_setIvar</code>、<code>object_getIvar</code>、<code>ivar_getName</code>、<code>ivar_getTypeEncoding</code>、<code>class_getInstanceVariable</code></td>
+</tr>
+<tr>
+<td>关联对象</td>
+<td><code>objc_setAssociatedObject</code> / <code>objc_getAssociatedObject</code> / <code>objc_removeAssociatedObjects</code></td>
+</tr>
+<tr>
+<td>选择器</td>
+<td><code>sel_registerName</code>、<code>NSSelectorFromString</code>、<code>NSStringFromSelector</code></td>
+</tr>
+<tr>
+<td>底层入口</td>
+<td><code>objc_msgSend</code>（需强转后调用）、<code>objc_msgSendSuper</code>、<code>class_getMethodImplementation</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>现代 runtime（Objective-C 2.0，macOS 10.5 / iOS 起）中，分类可以加方法、类支持动态添加方法、ivar 布局可变（fragile ABI 已成历史）。iPhone 上只有 modern runtime。</p>
+</blockquote>
+<h3>一个最小例子</h3>
+<pre><code class="language-objc">unsigned int count = 0;
+Method *list = class_copyMethodList([Person class], &amp;count);
+for (unsigned int i = 0; i &lt; count; i++) {
+    NSLog(@&quot;%@ %s&quot;, NSStringFromSelector(method_getName(list[i])),
+          method_getTypeEncoding(list[i]));
+}
+free(list);   // copy 系列 API 必须手动 free
+</code></pre>
+</div></section><section class="lesson-section" id="explanation"><h2>02 运行机制</h2><div class="markdown-body "><h3>一、对象的内存布局</h3>
+<p>每个 OC 对象（实例）的第一个字段就是 isa：</p>
+<pre><code class="language-c">struct objc_object {
+    isa_t isa;      // 不是简单的 Class 指针
+};
+</code></pre>
+<p>类对象本身也是对象，它的 isa 指向<strong>元类</strong>：</p>
+<pre><code class="language-c">struct objc_class : objc_object {
+    Class superclass;
+    cache_t cache;             // 方法缓存
+    class_data_bits_t bits;    // 通过 FAST_DATA_MASK 取 class_rw_t
+};
+</code></pre>
+<h3>二、isa 的演进：从指针到位域</h3>
+<p><strong>早期</strong>：isa 直接存 <code>Class</code> 地址。</p>
+<p><strong>arm64 之后</strong>：isa 是 <strong>non-pointer isa</strong>——一个 64 位整数，只有中间 33 位是真正的类地址：</p>
+<pre><code>bit 0     nonpointer        是否启用非指针 isa（1 = 是）
+bit 1     has_assoc         是否有关联对象
+bit 2     has_cxx_dtor      是否有 C++ 析构
+bit 3..35 shiftcls          类地址（33 位）
+bit 36..41 magic            校验位
+bit 42    weakly_referenced 是否被 weak 指向
+bit 43    deallocating      是否正在释放
+bit 44    has_sidetable_rc  引用计数是否外挂到 SideTable
+bit 45..63 extra_rc         引用计数（19 位）
+</code></pre>
+<p>取类必须做掩码：<code>class = isa &amp; ISA_MASK</code>（arm64 上 <code>0x0000000ffffffff8ULL</code>）。</p>
+<p><strong>直接后果</strong>：老代码里 <code>(Class)obj-&gt;isa</code> 在 arm64 上是<strong>错的</strong>，必须用 <code>object_getClass(obj)</code>；arm64e 上 shiftcls 还带 ptrauth 签名。</p>
+<h3>三、Tagged Pointer：连对象都不分配</h3>
+<p>小对象（<code>NSNumber</code>、<code>NSDate</code>、短 <code>NSString</code>）的值直接编码在指针里，<strong>不分配堆内存</strong>：</p>
+<pre><code class="language-objc">NSNumber *n = @(42);
+// 0xb0000000000002a2 —— 最高位为 1，值 42 就在指针里
+</code></pre>
+<ul>
+<li>arm64 上最高位（1&lt;&lt;63）为 1 表示 tagged pointer；</li>
+<li>iOS 14 起苹果加了 <code>objc_debug_taggedpointer_obfuscator</code> 做异或混淆，所以启动时打印的地址<strong>每次运行都不同</strong>；</li>
+<li>Tagged pointer 对象<strong>没有 isa、不走消息查找的完整流程</strong>，也没有引用计数——这直接影响 KVO 与方法交换能否生效。</li>
+</ul>
+<h3>四、类的数据：clean 与 dirty 的分离</h3>
+<pre><code>class_data_bits_t  --(FAST_DATA_MASK)--&gt;  class_rw_t
+                                              ├── ro()  -&gt; class_ro_t   （干净内存：类名、ivar 布局、原始方法列表）
+                                              └── ext() -&gt; class_rw_ext_t（脏内存：runtime 添加的方法/属性/协议）
+</code></pre>
+<ul>
+<li><strong>clean memory</strong>（<code>class_ro_t</code>，read-only）：编译期产生，可被多个进程共享、可换出。</li>
+<li><strong>dirty memory</strong>（<code>class_rw_ext_t</code>）：只有在 runtime 修改过类（加方法、加分类、swizzle）时才分配。</li>
+</ul>
+<p>这个分离是苹果优化内存的核心手段之一：<strong>绝大多数类的 <code>rw_ext</code> 从未被创建</strong>。</p>
+<h3>五、消息查找链路</h3>
+<pre class="mermaid">flowchart TD
+    A[&quot;objc_msgSend(receiver, sel, ...)&quot;] --&gt; B{&quot;receiver 为 nil?&quot;}
+    B -- 是 --&gt; B1[&quot;返回 nil / 0，安全结束&quot;]
+    B -- 否 --&gt; C{&quot;Tagged Pointer?&quot;}
+    C -- 是 --&gt; C1[&quot;走 tagged 专用路径&quot;]
+    C -- 否 --&gt; D[&quot;CacheLookup：cache_t 哈希查找&quot;]
+    D -- 命中 --&gt; E[&quot;TailCallCachedImp：直接跳转 IMP&quot;]
+    D -- 未命中 --&gt; F[&quot;__objc_msgSend_uncached&quot;]
+    F --&gt; G[&quot;MethodTableLookup&quot;]
+    G --&gt; H[&quot;lookUpImpOrForward 慢速查找&quot;]
+    H --&gt; I[&quot;本类 method_list 二分查找&quot;]
+    I -- 命中 --&gt; J[&quot;log_and_fill_cache 回填 cache_t&quot;]
+    J --&gt; E
+    I -- 未命中 --&gt; K{&quot;有 superclass?&quot;}
+    K -- 是 --&gt; L[&quot;父类 cache + method_list&quot;]
+    L --&gt; I
+    K -- 否 --&gt; M{&quot;尝试过动态解析?&quot;}
+    M -- 否 --&gt; N[&quot;resolveInstanceMethod: 后重试&quot;]
+    N --&gt; I
+    M -- 是 --&gt; O[&quot;__objc_msgForward_impcache 进入转发&quot;]
+</pre>
+<p>三个阶段各自的特点：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>实现</th>
+<th>成本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>缓存查找</td>
+<td>汇编 <code>CacheLookup</code>，哈希 + 线性探测</td>
+<td>几条指令</td>
+</tr>
+<tr>
+<td>慢速查找</td>
+<td>C 函数 <code>lookUpImpOrForward</code>，二分查找</td>
+<td>数十~数百纳秒，且<strong>只发生一次</strong></td>
+</tr>
+<tr>
+<td>转发</td>
+<td><code>___forwarding___</code></td>
+<td>慢 1~2 个数量级（见 Day 11）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键事实</strong>：慢速查找的结果会回填 <code>cache_t</code>，所以同一个方法第二次调用就是缓存命中。这是 runtime 性能可接受的根本原因。</p>
+<h3>六、cache_t 与 method_list</h3>
+<ul>
+<li><strong><code>cache_t</code></strong>：哈希表，<code>bucket_t</code> 存 <code>sel</code> + <code>imp</code>。占用超过容量的 3/4 时会扩容（翻倍）并清空旧桶。arm64 上用 <code>_bucketsAndMaybeMask</code> 一个 64 位字段同时编码桶数组地址与掩码。</li>
+<li><strong><code>method_list_t</code></strong>：按 SEL 排序的<strong>有序数组</strong>，查找用二分。iOS 14 起 arm64 使用 <strong>relative method lists</strong>——内部存 int32 相对偏移而非绝对指针，省内存但需要 runtime 做地址换算。</li>
+</ul>
+</div></section><section class="lesson-section" id="coreIdea"><h2>03 底层原理</h2><div class="markdown-body "><h3>一、根本命题：把绑定推迟到运行期</h3>
+<p>Runtime 只做一件事：<strong>把「SEL → IMP」这张表的查询，从编译期推迟到运行期</strong>。</p>
+<p>一旦查询发生在运行期，就自然获得了这些能力：</p>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>依赖的机制</th>
+<th>对应课程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Category 添加方法</td>
+<td>运行时往 <code>class_rw_ext_t</code> 插入 method</td>
+<td>Day 8</td>
+</tr>
+<tr>
+<td>关联对象</td>
+<td>运行时在外部表挂数据</td>
+<td>Day 9</td>
+</tr>
+<tr>
+<td>Method Swizzling</td>
+<td>运行时改 <code>method_t.imp</code></td>
+<td>Day 10</td>
+</tr>
+<tr>
+<td>KVO</td>
+<td>运行时换 isa</td>
+<td>Day 6</td>
+</tr>
+<tr>
+<td>消息转发</td>
+<td>查找失败后的兜底</td>
+<td>Day 11</td>
+</tr>
+<tr>
+<td>字典转模型 / 归档</td>
+<td>遍历 ivar / property 列表</td>
+<td>本课</td>
+</tr>
+</tbody>
+</table>
+<p><strong>换句话说：Day 6 到 Day 12 的所有内容，都建立在本课这一张表的可修改性上。</strong></p>
+<h3>二、isa 走位与元类</h3>
+<pre class="mermaid">flowchart TD
+    subgraph 实例
+        I[&quot;实例对象&quot;]
+    end
+    subgraph 类
+        C[&quot;类对象 Person&quot;]
+    end
+    subgraph 元类
+        M[&quot;元类 Person meta&quot;]
+        RM[&quot;根元类 NSObject meta&quot;]
+    end
+    N[&quot;NSObject 类&quot;]
+    I -- isa --&gt; C
+    C -- isa --&gt; M
+    M -- isa --&gt; RM
+    RM -- isa --&gt; RM
+    C -- superclass --&gt; N
+    M -- superclass --&gt; N
+    N -- isa --&gt; RM
+</pre>
+<p>三条必须记住的规则：</p>
+<ol>
+<li><strong>实例方法存在类里，类方法存在元类里</strong>（类方法本质是元类的实例方法）。</li>
+<li>任何元类的 isa 都指向<strong>根元类</strong>，根元类的 isa <strong>指向自己</strong>。</li>
+<li>元类的 superclass 链最终指向 <strong>NSObject 类</strong>——这就是为什么「给 NSObject 加分类」能同时影响所有类方法。</li>
+</ol>
+<p>验证：</p>
+<pre><code class="language-objc">Person *p = [Person new];
+object_getClass(p);                     // Person（类）
+object_getClass([p class]);             // Person meta（元类）
+object_getClass(object_getClass([p class])); // NSObject meta（根元类）
+class_isMetaClass(object_getClass([p class])); // YES
+</code></pre>
+<h3>三、<code>objc_msgSend</code> 的实现要点</h3>
+<p><code>_objc_msgSend</code> 是<strong>汇编</strong>实现的，入口在 <code>objc-msg-arm64.s</code>：</p>
+<ol>
+<li>从 <code>x0</code>（receiver）取 isa → <code>Class</code>；</li>
+<li>取 <code>cache</code> 的 buckets 与 mask，用 <code>sel</code>（<code>x1</code>）做哈希；</li>
+<li>命中 → <code>TailCallCachedImp</code> 直接跳转，不回 C；</li>
+<li>未命中 → 跳 <code>__objc_msgSend_uncached</code> → <code>MethodTableLookup</code> → 调 C 函数 <code>_lookUpImpOrForward</code>。</li>
+</ol>
+<blockquote>
+<p>调试技巧：arm64 上 receiver 在 <code>x0</code>、SEL 在 <code>x1</code>，所以 objc_msgSend 符号断点里可以 <code>po (id)$x0</code>、<code>p (SEL)$x1</code>。</p>
+</blockquote>
+<h3>四、<code>lookUpImpOrForward</code> 慢速查找</h3>
+<pre><code>lookUpImpOrForward(cls, sel, inst, behavior)
+  1. 若类未 realize → realizeClassMaybeSwiftAndLeaveLocked
+  2. 再查一次 cache（多线程下可能已被别的线程填好）
+  3. 本类 method_list 二分查找（findMethodInSortedMethodList）
+  4. 沿 superclass 链重复 2~3，直到 nil
+  5. 命中 → log_and_fill_cache 回填 → 返回 IMP
+  6. 未命中 → 若未尝试过 → _class_resolveMethod（动态解析）→ 回到第 2 步 retry
+  7. 仍未命中 → 返回 _objc_msgForward_impcache（进入消息转发）
+</code></pre>
+<p>注意第 6 步的 <strong>retry</strong>：动态解析成功后会重新走一遍完整查找，这也是「<code>resolveInstanceMethod:</code> 只会被调用一次」的原因——第二次进来时方法已经在列表里了。</p>
+<h3>五、Type Encodings</h3>
+<p>每个方法的 <code>types</code> 字段描述其签名，runtime 与 NSInvocation 都靠它理解参数：</p>
+<table>
+<thead>
+<tr>
+<th>编码</th>
+<th>类型</th>
+<th>编码</th>
+<th>类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>c</code></td>
+<td><code>char</code></td>
+<td><code>@</code></td>
+<td><code>id</code> / 对象</td>
+</tr>
+<tr>
+<td><code>i</code></td>
+<td><code>int</code></td>
+<td><code>#</code></td>
+<td><code>Class</code></td>
+</tr>
+<tr>
+<td><code>s</code></td>
+<td><code>short</code></td>
+<td><code>:</code></td>
+<td><code>SEL</code></td>
+</tr>
+<tr>
+<td><code>l</code></td>
+<td><code>long</code></td>
+<td><code>*</code></td>
+<td><code>char *</code></td>
+</tr>
+<tr>
+<td><code>q</code></td>
+<td><code>long long</code></td>
+<td><code>^T</code></td>
+<td><code>T *</code></td>
+</tr>
+<tr>
+<td><code>f</code></td>
+<td><code>float</code></td>
+<td><code>{name=...}</code></td>
+<td>结构体</td>
+</tr>
+<tr>
+<td><code>d</code></td>
+<td><code>double</code></td>
+<td><code>v</code></td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td><code>B</code></td>
+<td><code>bool</code> / <code>_Bool</code></td>
+<td><code>?</code></td>
+<td>未知（函数指针）</td>
+</tr>
+</tbody>
+</table>
+<p>例：<code>- (void)setName:(NSString *)name</code> 的编码是 <code>v24@0:8@16</code> —— 返回 <code>void</code>、共 24 字节、<code>self</code> 在 0、<code>_cmd</code> 在 8、参数在 16。</p>
+<h3>六、Runtime 的启动</h3>
+<p>dyld 装载镜像时触发 <code>_objc_init</code>，注册三个回调：</p>
+<table>
+<thead>
+<tr>
+<th>回调</th>
+<th>时机</th>
+<th>干什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>map_2_images</code></td>
+<td>镜像映射</td>
+<td>注册类、注册分类、修正 selector 唯一性</td>
+</tr>
+<tr>
+<td><code>load_images</code></td>
+<td>镜像装载完</td>
+<td>调用 <code>+load</code></td>
+</tr>
+<tr>
+<td><code>unmap_image</code></td>
+<td>镜像卸载</td>
+<td>清理</td>
+</tr>
+</tbody>
+</table>
+<p><code>_objc_init</code> 之前还有 <code>sel_init</code>（选择器表初始化）与 <code>cache_init</code>。<strong>所有类的注册、<code>+load</code> 的调用都发生在 <code>main()</code> 之前</strong>。</p>
+</div></section><section class="lesson-section" id="connections"><h2>04 设计与取舍</h2><div class="markdown-body "><h3>一、Apple 的取舍</h3>
+<p><strong>选择</strong>：把方法绑定从编译期挪到运行期。</p>
+<p><strong>换来什么</strong>：</p>
+<ul>
+<li>极强的表达能力：分类、KVO、Swizzling、转发、依赖注入、字典转模型、JSON 映射、Core Data 的 faulting、甚至 JSPatch 热修——全部建立在这一个决策上；</li>
+<li>向后兼容的 ABI 演进：类的内存布局可推迟到加载时确定；</li>
+<li>与 Smalltalk 一脉相承的「一切皆消息」的一致性。</li>
+</ul>
+<p><strong>付出什么</strong>：</p>
+<ul>
+<li><strong>性能</strong>：每次调用多一次查表。缓存命中约几条指令，未命中要走 C 的慢速路径；</li>
+<li><strong>编译期检查缺失</strong>：<code>unrecognized selector sent to instance</code> 是运行时崩溃，编译器帮不上忙；</li>
+<li><strong>优化受阻</strong>：消息调用无法内联、无法做跨函数优化；</li>
+<li><strong>体积</strong>：类名、SEL 字符串、类型编码都要进 Mach-O，无法被 strip；</li>
+<li><strong>可分析性</strong>：调用关系藏在 runtime 里，静态分析工具看不到。</li>
+</ul>
+<h3>二、苹果的补救措施</h3>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>补救</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>查找慢</td>
+<td><code>cache_t</code> 哈希缓存 + 汇编快速路径</td>
+</tr>
+<tr>
+<td>对象头开销</td>
+<td>non-pointer isa（isa 里塞引用计数等）</td>
+</tr>
+<tr>
+<td>小对象分配开销</td>
+<td>Tagged Pointer（不分配堆内存）</td>
+</tr>
+<tr>
+<td>类内存占用</td>
+<td>clean / dirty 内存分离（<code>class_ro_t</code> / <code>class_rw_ext_t</code>）</td>
+</tr>
+<tr>
+<td>方法列表体积</td>
+<td>relative method lists（int32 偏移）</td>
+</tr>
+<tr>
+<td>引用计数性能</td>
+<td><code>extra_rc</code> + SideTable 外挂</td>
+</tr>
+</tbody>
+</table>
+<p>这些优化的共同思路是：<strong>保留动态性的语义，把常见路径的成本压到接近静态调用</strong>。</p>
+<h3>三、Swift 的反向选择</h3>
+<p>Swift 把默认派发方式改回了静态：</p>
+<table>
+<thead>
+<tr>
+<th>派发方式</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>直接调用（静态）</td>
+<td>struct / final / private 方法</td>
+</tr>
+<tr>
+<td>vtable 派发</td>
+<td>class 的普通方法</td>
+</tr>
+<tr>
+<td>witness table</td>
+<td>protocol 方法</td>
+</tr>
+<tr>
+<td><strong>消息派发</strong></td>
+<td><code>@objc dynamic</code> / 继承 NSObject</td>
+</tr>
+</tbody>
+</table>
+<p>结论：<strong>Swift 只有在需要 Cocoa 互操作时才回退到 runtime 消息派发</strong>。这也解释了为什么 KVO、Swizzling 在 Swift 里都需要显式标注 <code>@objc dynamic</code>（Day 6、Day 10）。</p>
+<h3>四、与相邻知识的连接</h3>
+<ul>
+<li><strong>Category（Day 8）</strong>：分类在 <code>map_images</code> 阶段被插入到方法列表前面，<code>+load</code> 由 <code>load_images</code> 触发。</li>
+<li><strong>KVO（Day 6）</strong>：换 isa 之所以有效，正是因为查找按 receiver 的 isa 走。</li>
+<li><strong>Message Forwarding（Day 11）</strong>：本课链路的第 7 步就是它的入口。</li>
+<li><strong>Method Swizzling（Day 10）</strong>：改的就是慢速查找要查的那张表。</li>
+</ul>
+</div></section><section class="lesson-section" id="applications"><h2>05 工程实战</h2><div class="markdown-body "><h3>一、观察实验：看清一个类</h3>
+<pre><code class="language-objc">- (void)inspect:(id)obj {
+    Class cls = object_getClass(obj);          // 真实类（KVO 后能看到动态子类）
+    NSLog(@&quot;isa=%@ super=%@ isMeta=%d&quot;, cls, class_getSuperclass(cls),
+          class_isMetaClass(cls));
+
+    // 继承链
+    for (Class c = cls; c; c = class_getSuperclass(c)) {
+        NSLog(@&quot;chain: %@&quot;, c);
+    }
+
+    // 方法列表（copy 系列必须 free）
+    unsigned n = 0;
+    Method *ms = class_copyMethodList(cls, &amp;n);
+    for (unsigned i = 0; i &lt; n; i++) {
+        NSLog(@&quot;  %@ %s -&gt; %p&quot;, NSStringFromSelector(method_getName(ms[i])),
+              method_getTypeEncoding(ms[i]), method_getImplementation(ms[i]));
+    }
+    free(ms);
+
+    // ivar / property
+    unsigned ic = 0; Ivar *ivs = class_copyIvarList(cls, &amp;ic);
+    for (unsigned i = 0; i &lt; ic; i++) NSLog(@&quot;  ivar %s %s&quot;,
+        ivar_getName(ivs[i]), ivar_getTypeEncoding(ivs[i]));
+    free(ivs);
+}
+</code></pre>
+<h3>二、符号断点观察一次真实查找</h3>
+<ol>
+<li>下 <strong>Symbolic Breakpoint</strong>：<code>objc_msgSend</code>；</li>
+<li>arm64 上打印：<code>po (id)$x0</code>（receiver）、<code>p (SEL)$x1</code>、<code>p (char *)$x1</code>；</li>
+<li>单步到 <code>TailCallCachedImp</code> 可看到缓存命中；未命中会进入 <code>__objc_msgSend_uncached</code>。</li>
+</ol>
+<blockquote>
+<p>由于 <code>objc_msgSend</code> 调用极频繁，建议<strong>先用条件断点</strong>限定 <code>$x1</code> 等于目标 SEL，否则调试器会被拖垮。</p>
+</blockquote>
+<h3>三、IMP 缓存：把动态调用压到最快</h3>
+<p>热路径（如列表滚动中反复调用同一方法）可以手动缓存 IMP：</p>
+<pre><code class="language-objc">SEL sel = @selector(rowHeight);
+IMP imp = method_getImplementation(class_getInstanceMethod(cls, sel));
+CGFloat (*fn)(id, SEL) = (CGFloat (*)(id, SEL))imp;   // arm64 上必须强转才能调
+for (...) { CGFloat h = fn(model, sel); }
+</code></pre>
+<p>注意：<strong>arm64 上不能直接调 <code>objc_msgSend</code> 的 C 声明</strong>，必须强转成正确的函数签名，否则 ABI 不匹配会崩。</p>
+<h3>四、典型生产用途与风险</h3>
+<table>
+<thead>
+<tr>
+<th>用途</th>
+<th>做法</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>字典转模型</td>
+<td>遍历 property 列表 + KVC 赋值</td>
+<td>类型不匹配、KVC 找不到 key 会崩</td>
+</tr>
+<tr>
+<td>自动归档 / 序列化</td>
+<td>遍历 ivar 逐个 encode</td>
+<td>结构体成员需特殊处理</td>
+</tr>
+<tr>
+<td>埋点与监控</td>
+<td>见 Day 10</td>
+<td>全局性</td>
+</tr>
+<tr>
+<td>unrecognized selector 兜底</td>
+<td>见 Day 11</td>
+<td>吞掉编程错误</td>
+</tr>
+<tr>
+<td>热修（JSPatch 类）</td>
+<td>转发 + JS 引擎</td>
+<td><strong>审核风险</strong>，苹果明确限制</td>
+</tr>
+</tbody>
+</table>
+<h3>五、工程护栏</h3>
+<ol>
+<li><strong>不依赖私有结构</strong>：<code>objc_class</code>、<code>isa_t</code>、<code>cache_t</code> 的字段布局没有 ABI 契约，系统升级即失效。只用于调试，不用于生产。</li>
+<li><strong>遍历列表要 <code>free</code></strong>：<code>class_copyMethodList</code> / <code>class_copyIvarList</code> 返回的数组是 malloc 出来的。</li>
+<li><strong>不在热路径做反射</strong>：<code>class_copyMethodList</code> 会拷贝整个列表，成本远高于一次消息查找。</li>
+<li><strong>优先 <code>object_getClass</code></strong>：不要碰 <code>isa</code> 字段（non-pointer isa）。</li>
+<li><strong>动态能力收敛在基础设施</strong>：业务代码里出现 <code>objc_msgSend</code> / <code>method_exchangeImplementations</code>，应视为需要评审的信号。</li>
+</ol>
+</div></section><section class="lesson-section" id="reflection"><h2>06 常见坑与反思</h2><div class="markdown-body "><h3>高频坑位表</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>成因</th>
+<th>症状</th>
+<th>规避</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>(Class)obj-&gt;isa</code> 拿到垃圾</strong></td>
+<td>arm64 是 non-pointer isa</td>
+<td>类名乱码、崩溃</td>
+<td>一律用 <code>object_getClass</code></td>
+</tr>
+<tr>
+<td><strong><code>[obj class]</code> 与真实类不符</strong></td>
+<td>KVO 重写了 <code>-class</code></td>
+<td>看不到 <code>NSKVONotifying_</code>（Day 6）</td>
+<td>用 <code>object_getClass</code></td>
+</tr>
+<tr>
+<td><strong><code>class_copyXXX</code> 泄漏</strong></td>
+<td>copy 系列返回 malloc 数组</td>
+<td>内存持续增长</td>
+<td>配对 <code>free</code></td>
+</tr>
+<tr>
+<td><strong><code>class_addMethod</code> 返回 NO 当失败</strong></td>
+<td>返回 NO 表示「本类已有」</td>
+<td>逻辑判断反了</td>
+<td>理解语义：返回 NO 是探测结果</td>
+</tr>
+<tr>
+<td><strong>类/元类混淆</strong></td>
+<td>类方法在元类上</td>
+<td>hook 类方法不生效</td>
+<td><code>object_getClass(cls)</code></td>
+</tr>
+<tr>
+<td><strong>直接调 <code>objc_msgSend</code></strong></td>
+<td>arm64 ABI 要求强转</td>
+<td>参数错乱、崩溃</td>
+<td>强转成准确签名</td>
+</tr>
+<tr>
+<td><strong>Tagged Pointer 上做 KVO/Swizzle</strong></td>
+<td>它没有 isa、不走完整查找</td>
+<td>静默失效</td>
+<td>用 <code>object_getClass</code> 确认真实类</td>
+</tr>
+<tr>
+<td><strong><code>respondsToSelector:</code> 与转发</strong></td>
+<td>默认实现<strong>不触发</strong>消息转发</td>
+<td>误判对象「不支持」某方法</td>
+<td>需要判断转发能力要显式重写</td>
+</tr>
+<tr>
+<td><strong>反射遍历进热路径</strong></td>
+<td>拷贝整个方法/属性列表</td>
+<td>列表滚动掉帧</td>
+<td>一次性缓存结果</td>
+</tr>
+<tr>
+<td><strong><code>NSSelectorFromString</code> 拼错</strong></td>
+<td>字符串无编译期检查</td>
+<td>运行时崩溃</td>
+<td>优先用 <code>@selector</code></td>
+</tr>
+</tbody>
+</table>
+<h3>三条反思</h3>
+<ol>
+<li><strong>动态能力应收敛在基础设施边界。</strong> 业务代码里直接用 runtime 改行为，等于把控制流移出源码——可读性、可测性、静态分析能力同时归零。</li>
+<li><strong>私有实现与全局 Hook 缺乏稳定契约。</strong> <code>NSKVONotifying_</code>、<code>_NSSetXXXValueAndNotify</code>、<code>isa_t</code> 位域都是逆向产物，可以拿来学习，不能拿来依赖。</li>
+<li><strong>「能」不等于「该」。</strong> Runtime 能让你在运行时做任何事；判断标准应该是：如果一年后接手的人读这段代码，能不能在不跑起来的情况下知道会发生什么？</li>
+</ol>
+</div></section><section class="lesson-section" id="questions"><h2>07 知识验收</h2><ol><li><code>id</code>、<code>Class</code>、<code>SEL</code>、<code>IMP</code>、<code>Method</code> 分别是什么？为什么说 <code>id</code> 本身已经是指针，不需要再加 <code>*</code>？</li><li>画出 <code>objc_msgSend</code> 从调用到执行的完整链路，标出缓存查找、慢速查找、动态解析与转发四个阶段的边界。</li><li>arm64 上 isa 为什么不是纯指针？non-pointer isa 里都塞了哪些信息？直接访问 isa 字段会有什么后果？</li><li>什么是 Tagged Pointer？它对 KVO 和 Method Swizzling 分别意味着什么？</li><li>类对象和元类的关系是什么？类方法存在哪里？根元类的 isa 指向谁？给 NSObject 加分类为什么能影响所有类方法？</li><li><code>lookUpImpOrForward</code> 里「动态解析后 retry」这一步的作用是什么？为什么 <code>resolveInstanceMethod:</code> 只会被调用一次？</li><li>Type Encoding <code>v24@0:8@16</code> 描述了一个什么方法？runtime 靠它做什么？</li><li><code>class_copyMethodList</code> 返回值的内存由谁负责释放？这类 API 在性能上有什么陷阱？</li><li>runtime 的动态性换来了哪些上层能力？苹果用了哪些手段把它的常见路径成本压下来？</li><li>为什么 Swift 默认改用静态派发 / vtable 派发？<code>@objc dynamic</code> 在什么时候是必需的？</li><li>给出一个真实（或可信构造的）故障：现象、证据链、根因与改进方案，要求用到 runtime 层面的验证手段。</li><li>什么条件下你会拒绝使用 runtime 动态能力，改用编译期方案？</li></ol></section><section class="lesson-section" id="mastery"><h2>08 掌握标准</h2><div class="markdown-body "><p><strong>一句话总结</strong>：Runtime 把「SEL → IMP」的绑定从编译期推迟到运行期——对象经 isa 找到类，<code>objc_msgSend</code> 先查 <code>cache_t</code> 缓存，再沿类层级二分查找 <code>method_list</code>，失败后先做动态解析、最后进入消息转发；正因为这张表在运行期可读可写，KVO、Category、Swizzling、转发与字典转模型才成为可能。</p>
+<p><strong>掌握标准</strong>：</p>
+<ul>
+<li><strong>60 分</strong>：能说清 <code>id</code> / <code>Class</code> / <code>SEL</code> / <code>IMP</code> 的定义与 <code>objc_msgSend</code> 的查找链路；知道元类存在的意义；能解释为什么 <code>[obj class]</code> 和 <code>object_getClass(obj)</code> 可能不同。</li>
+<li><strong>80 分</strong>：能解释 non-pointer isa 的字段与 <code>ISA_MASK</code> 的必要性；能独立用 <code>class_copyMethodList</code> / 符号断点复现一次真实查找；能定位「方法找不到」与「hook 静默失效」两类故障；知道 <code>class_copyXXX</code> 必须 <code>free</code>。</li>
+<li><strong>100 分</strong>：能讲清 clean / dirty 内存分离、relative method lists、Tagged Pointer 背后的取舍；能列举苹果为压低 runtime 成本所做的具体优化；能判断何时该用编译期方案替代动态能力，并把 runtime 使用收敛在基础设施边界内。</li>
+</ul>
+</div></section><section class="lesson-section" id="diagrams"><h2>图解</h2><h3>objc_msgSend 完整查找链路</h3><pre class="mermaid">flowchart TD
+  A[&quotobjc_msgSend(receiver, sel)&quot] --&gt; B{&quotreceiver 为 nil?&quot}
+  B -- 是 --&gt; B1[&quot返回 nil，安全结束&quot]
+  B -- 否 --&gt; C{&quotTagged Pointer?&quot}
+  C -- 是 --&gt; C1[&quottagged 专用路径&quot]
+  C -- 否 --&gt; D[&quotCacheLookup 哈希查找&quot]
+  D -- 命中 --&gt; E[&quotTailCallCachedImp 跳转 IMP&quot]
+  D -- 未命中 --&gt; F[&quot__objc_msgSend_uncached&quot]
+  F --&gt; H[&quotlookUpImpOrForward 慢速查找&quot]
+  H --&gt; I[&quot本类 method_list 二分查找&quot]
+  I -- 命中 --&gt; J[&quot回填 cache_t&quot]
+  J --&gt; E
+  I -- 未命中 --&gt; K{&quot有 superclass?&quot}
+  K -- 是 --&gt; L[&quot父类 cache + method_list&quot]
+  L --&gt; I
+  K -- 否 --&gt; M{&quot已尝试动态解析?&quot}
+  M -- 否 --&gt; N[&quotresolveInstanceMethod: 后 retry&quot]
+  N --&gt; I
+  M -- 是 --&gt; O[&quot__objc_msgForward_impcache 进入转发&quot]</pre><h3>isa 走位与元类关系</h3><pre class="mermaid">flowchart TD
+  I[&quot实例对象&quot] -- isa --&gt; C[&quot类对象 Person&quot]
+  C -- isa --&gt; M[&quot元类 Person meta&quot]
+  M -- isa --&gt; RM[&quot根元类 NSObject meta&quot]
+  RM -- isa --&gt; RM
+  C -- superclass --&gt; N[&quotNSObject 类&quot]
+  M -- superclass --&gt; N
+  N -- isa --&gt; RM</pre></section><nav class="lesson-nav"><a href="IOS-D003.html">← Block：闭包、捕获与异步编程</a><a href="../index.html">返回专题目录</a><a href="IOS-D005.html">KVC：键值编码的查找机制 →</a></nav></article></div></main><footer><div class="shell">结构化数据是唯一事实源 · 让每一次定时学习持续积累</div></footer></body></html>
