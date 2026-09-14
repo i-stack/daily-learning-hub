@@ -1,8 +1,649 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Associated Object：不改变对象布局的扩展存储：从 API、底层机制、设计取舍到工程验证建立完整理解。"><title>Associated Object：不改变对象布局的扩展存储｜每日学习库</title><link rel="stylesheet" href="../../../assets/styles.css"><link rel="stylesheet" href="../../../assets/hub.css"></head><body><header class="shell site-head"><a class="brand" href="../../../index.html">每日学习库</a><nav class="head-links"><a href="../../../index.html#collections">学习专题</a><a href="../../../index.html#lessons">全部内容</a></nav></header><main class="shell"><div class="breadcrumb"><a href="../../../index.html">每日学习库</a> › <a href="../index.html">iOS 底层训练营</a> › IOS-D009</div><header class="entry-head"><div class="eyebrow">IOS-D009</div><h1>Associated Object：不改变对象布局的扩展存储</h1><div class="meta">动态系统 · 2026-08-18 · Associated Object / 不改变对象布局的扩展存储</div></header><div class="entry-grid"><aside class="toc"><a href="#original">01 背景与 API</a><a href="#explanation">02 运行机制</a><a href="#coreIdea">03 底层原理</a><a href="#connections">04 设计与取舍</a><a href="#applications">05 工程实战</a><a href="#reflection">06 常见坑与反思</a><a href="#questions">07 知识验收</a><a href="#mastery">08 掌握标准</a></aside><article><p class="hero-copy">Associated Object：不改变对象布局的扩展存储：从 API、底层机制、设计取舍到工程验证建立完整理解。</p><section class="lesson-section" id="original"><h2>01 背景与 API</h2><div class="markdown-body "><p>背景、API 与场景：Associated Object：不改变对象布局的扩展存储 是 iOS 底层训练营 Day 9 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。</p>
-</div></section><section class="lesson-section" id="explanation"><h2>02 运行机制</h2><div class="markdown-body "><p>运行机制：Runtime 在对象外部以宿主和 key 维护关联表，策略决定 retain/copy/assign。</p>
-</div></section><section class="lesson-section" id="coreIdea"><h2>03 底层原理</h2><div class="markdown-body "><p>核心原理：Runtime 在对象外部以宿主和 key 维护关联表，策略决定 retain/copy/assign。</p>
-</div></section><section class="lesson-section" id="connections"><h2>04 设计与取舍</h2><div class="markdown-body "><p>Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。</p>
-</div></section><section class="lesson-section" id="applications"><h2>05 工程实战</h2><div class="markdown-body "><p>工程实战：用唯一静态地址作 key，明确释放与线程安全；核心状态仍建模成真实类型。</p>
-</div></section><section class="lesson-section" id="reflection"><h2>06 常见坑与反思</h2><div class="markdown-body "><p>常见坑与反思：assign 可能悬垂，字符串 key 可能冲突，隐式状态会降低可发现性。</p>
-</div></section><section class="lesson-section" id="questions"><h2>07 知识验收</h2><ol><li>请脱稿解释“Associated Object：不改变对象布局的扩展存储”解决的核心问题与主要 API。</li><li>画出本课从调用入口到底层结果的完整链路。</li><li>Apple 为什么采用这种设计？它换来了什么，又付出了什么？</li><li>给出一个真实故障，并说明用什么证据验证根因。</li><li>什么条件下你会选择另一种实现？</li></ol></section><section class="lesson-section" id="mastery"><h2>08 掌握标准</h2><div class="markdown-body "><p>一句话总结：Runtime 在对象外部以宿主和 key 维护关联表，策略决定 retain/copy/assign。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。</p>
-</div></section><nav class="lesson-nav"><a href="IOS-D008.html">← Category：方法扩展与加载机制</a><a href="../index.html">返回专题目录</a><a href="IOS-D010.html">Method Swizzling：方法交换、AOP 与安全边界 →</a></nav></article></div></main><footer><div class="shell">结构化数据是唯一事实源 · 让每一次定时学习持续积累</div></footer></body></html>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Category 不能添加实例变量，因为类的 ivar layout 在编译期就已固定。Associated Object 绕开了这个限制：runtime 在对象之外用一张全局哈希表维护「宿主 → key → 值」，代价是哈希查找、全局锁和一份无法被编译器检查的隐式状态。本课讲清三层表结构、五种关联策略、为什么 key 必须是稳定地址、为什么没有 weak 策略，以及它最危险的失效形式——关联对象持有宿主形成的永久泄漏。"><title>Associated Object：不改变对象布局的扩展存储｜每日学习库</title><link rel="stylesheet" href="../../../assets/styles.css"><link rel="stylesheet" href="../../../assets/hub.css"><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script><script>addEventListener('DOMContentLoaded',()=>{mermaid.initialize({startOnLoad:true});});</script></head><body><header class="shell site-head"><a class="brand" href="../../../index.html">每日学习库</a><nav class="head-links"><a href="../../../index.html#collections">学习专题</a><a href="../../../index.html#lessons">全部内容</a></nav></header><main class="shell"><div class="breadcrumb"><a href="../../../index.html">每日学习库</a> › <a href="../index.html">iOS 底层训练营</a> › IOS-D009</div><header class="entry-head"><div class="eyebrow">IOS-D009</div><h1>Associated Object：不改变对象布局的扩展存储</h1><div class="meta">动态系统 · 2026-08-18 · Associated Object / objc_setAssociatedObject / 关联策略 / AssociationsHashMap / Category 属性 / 静态地址 key / Tagged Pointer</div></header><div class="entry-grid"><aside class="toc"><a href="#original">01 背景与 API</a><a href="#explanation">02 运行机制</a><a href="#coreIdea">03 底层原理</a><a href="#connections">04 设计与取舍</a><a href="#applications">05 工程实战</a><a href="#reflection">06 常见坑与反思</a><a href="#questions">07 知识验收</a><a href="#mastery">08 掌握标准</a><a href="#references">参考资料</a></aside><article><p class="hero-copy">Category 不能添加实例变量，因为类的 ivar layout 在编译期就已固定。Associated Object 绕开了这个限制：runtime 在对象之外用一张全局哈希表维护「宿主 → key → 值」，代价是哈希查找、全局锁和一份无法被编译器检查的隐式状态。本课讲清三层表结构、五种关联策略、为什么 key 必须是稳定地址、为什么没有 weak 策略，以及它最危险的失效形式——关联对象持有宿主形成的永久泄漏。</p><section class="lesson-section" id="original"><h2>01 背景与 API</h2><div class="markdown-body "><h3>要解决的问题</h3>
+<p><strong>Category 不能添加实例变量（ivar）。</strong></p>
+<p>类的内存布局（<code>class_ro_t</code> 里的 <code>ivarLayout</code>）在<strong>编译期</strong>就已确定：每个实例的字节数、每个 ivar 的偏移都是固定的。运行时再往里塞一个 ivar，会让所有已存在的实例布局失效——这是不可能做的事。</p>
+<p>于是出现一个矛盾的需求：</p>
+<blockquote>
+<p>想在<strong>不改类源码、不改对象布局</strong>的前提下，给对象挂一份额外状态。</p>
+</blockquote>
+<p>典型场景：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>给系统类挂状态</td>
+<td>给 <code>UIView</code> 挂一个业务 id、给 <code>UIGestureRecognizer</code> 挂闭包</td>
+</tr>
+<tr>
+<td>在 Category 里实现「属性」</td>
+<td><code>@property</code> 在 Category 中只生成方法声明，需要存储</td>
+</tr>
+<tr>
+<td>给协议扩展加存储</td>
+<td>Swift extension 不支持存储属性</td>
+</tr>
+<tr>
+<td>埋点 / AOP 的临时状态</td>
+<td>记录某个对象是否已处理</td>
+</tr>
+</tbody>
+</table>
+<h3>API</h3>
+<pre><code class="language-objc">// 设置
+objc_setAssociatedObject(id object, const void *key, id value, objc_AssociationPolicy policy);
+// 读取
+id objc_getAssociatedObject(id object, const void *key);
+// 移除该对象的**全部**关联（慎用）
+void objc_removeAssociatedObjects(id object);
+</code></pre>
+<h3>五种关联策略</h3>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>对应属性修饰符</th>
+<th>语义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OBJC_ASSOCIATION_ASSIGN</code></td>
+<td><code>assign</code> / <code>unsafe_unretained</code></td>
+<td>不持有，<strong>目标释放后成野指针</strong></td>
+</tr>
+<tr>
+<td><code>OBJC_ASSOCIATION_RETAIN_NONATOMIC</code></td>
+<td><code>strong, nonatomic</code></td>
+<td>持有，不加锁</td>
+</tr>
+<tr>
+<td><code>OBJC_ASSOCIATION_COPY_NONATOMIC</code></td>
+<td><code>copy, nonatomic</code></td>
+<td>拷贝，不加锁</td>
+</tr>
+<tr>
+<td><code>OBJC_ASSOCIATION_RETAIN</code></td>
+<td><code>strong, atomic</code></td>
+<td>持有，setter 加锁</td>
+</tr>
+<tr>
+<td><code>OBJC_ASSOCIATION_COPY</code></td>
+<td><code>copy, atomic</code></td>
+<td>拷贝，setter 加锁</td>
+</tr>
+</tbody>
+</table>
+<p><strong>注意：没有 <code>OBJC_ASSOCIATION_WEAK</code>。</strong> 官方不提供弱关联（原因见 03 节）。</p>
+<h3>最小示例</h3>
+<pre><code class="language-objc">static char kAssociatedKey;   // 用静态变量的地址作 key
+
+- (void)setBadge:(NSString *)badge {
+    objc_setAssociatedObject(self, &amp;kAssociatedKey, badge,
+                             OBJC_ASSOCIATION_COPY_NONATOMIC);
+}
+
+- (NSString *)badge {
+    return objc_getAssociatedObject(self, &amp;kAssociatedKey);
+}
+</code></pre>
+<p>在 Category 里这样写，就得到了一个<strong>能用但不能自动合成 ivar 的「属性」</strong>。</p>
+</div></section><section class="lesson-section" id="explanation"><h2>02 运行机制</h2><div class="markdown-body "><h3>一、三层哈希结构</h3>
+<p>关联对象<strong>不存在对象里</strong>，存在 runtime 的一张全局表中：</p>
+<pre class="mermaid">flowchart TD
+    A[&quot;AssociationsManager（自旋锁）&quot;] --&gt; B[&quot;AssociationsHashMap 全局唯一&quot;]
+    B --&gt; C[&quot;key: DisguisedPtr 宿主对象地址&quot;]
+    C --&gt; D[&quot;ObjectAssociationMap&quot;]
+    D --&gt; E[&quot;key: const void* 你传入的 key&quot;]
+    E --&gt; F[&quot;ObjcAssociation&quot;]
+    F --&gt; G[&quot;policy + value&quot;]
+</pre>
+<p>用 C++ 伪代码表示（objc4 <code>objc-references.mm</code>）：</p>
+<pre><code class="language-cpp">// 第一层：宿主对象地址 → 该对象的关联表
+DenseMap&lt;DisguisedPtr&lt;objc_object&gt;, ObjectAssociationMap&gt; AssociationsHashMap;
+// 第二层：key → 关联值
+DenseMap&lt;const void *, ObjcAssociation&gt; ObjectAssociationMap;
+// 值
+class ObjcAssociation { uintptr_t _policy; id _value; };
+</code></pre>
+<p><strong>全局只有一张 <code>AssociationsHashMap</code></strong>，由一个 <code>AssociationsManager</code> 用自旋锁保护。</p>
+<h3>二、set 的完整流程</h3>
+<pre><code>objc_setAssociatedObject(object, key, value, policy)
+  ↓
+① acquireValue：按 policy 对 value 做 retain 或 copy
+  ↓
+② AssociationsManager 构造 → 加自旋锁（析构时解锁）
+  ↓
+③ 用 DisguisedPtr&lt;object&gt; 在 AssociationsHashMap 中查找
+     - 找不到 → 插入空的 ObjectAssociationMap
+     - 并设置 isa.has_assoc = 1（dealloc 时才知道要清理）
+  ↓
+④ 在 ObjectAssociationMap 中按 key 交换新旧值
+  ↓
+⑤ 释放旧值（按旧 policy 做 release）
+</code></pre>
+<blockquote>
+<p>注意顺序：<strong>先 retain 新值，再 release 旧值</strong>——与 <code>objc_storeStrong</code>（Day 2）同样的理由，避免自赋值时被提前释放。</p>
+</blockquote>
+<h3>三、get 的流程</h3>
+<pre><code>objc_getAssociatedObject(object, key)
+  ↓
+加锁 → 两层哈希查找 → 取出 ObjcAssociation
+  ↓
+按 policy 决定返回方式（retain/copy 的会 retain + autorelease 后返回）
+</code></pre>
+<p>比一次 ivar 访问慢得多：<strong>加锁 + 两次哈希 + 可能的 retain/release</strong>。</p>
+<h3>四、什么时候被释放</h3>
+<p>关联对象<strong>不由 ARC 管理</strong>，而是由 runtime 在宿主 <code>dealloc</code> 时统一清理：</p>
+<pre><code>dealloc
+  → _objc_rootDealloc → object_dispose → objc_destructInstance
+        ① object_cxxDestruct        析构 ivar（ARC 插入的 release 在这里）
+        ② _object_remove_assocations 移除全部关联对象   ★ 在这里
+        ③ clearDeallocating          weak 置 nil、清 SideTable
+  → free
+</code></pre>
+<p><strong>关键推论：关联对象在 ivar 之后被释放。</strong></p>
+<p>这意味着——如果一个关联对象的 <code>dealloc</code> 里访问宿主的 ivar，那些 ivar <strong>已经被释放了</strong>，是野指针。</p>
+<h3>五、<code>objc_removeAssociatedObjects</code> 为什么不该用</h3>
+<p>它会移除该对象<strong>所有</strong>的关联，包括<strong>别人的</strong>：</p>
+<ul>
+<li>UIKit 内部、三方库、你自己不同模块设置的关联，全部被清掉；</li>
+<li>后果是难以定位的静默失效。</li>
+</ul>
+<p>正确做法：<strong>用同一个 key 设为 <code>nil</code></strong>，只移除自己那一份。</p>
+<pre><code class="language-objc">objc_setAssociatedObject(self, &amp;kKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+</code></pre>
+</div></section><section class="lesson-section" id="coreIdea"><h2>03 底层原理</h2><div class="markdown-body "><h3>一、根本命题：把存储从「对象布局」搬到「外部索引」</h3>
+<p>传统的实例变量是<strong>布局的一部分</strong>：<code>self + offset</code> 直接访问，一条 <code>ldr</code> 指令。</p>
+<p>关联对象换了一种思路：<strong>对象里只留一个标志位（<code>isa.has_assoc</code>），真正的数据放在全局表里，用「宿主地址 + key」索引。</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>ivar</th>
+<th>Associated Object</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>位置</td>
+<td>对象内存内部</td>
+<td>runtime 全局哈希表</td>
+</tr>
+<tr>
+<td>访问</td>
+<td>编译期偏移，一条指令</td>
+<td>加锁 + 两次哈希</td>
+</tr>
+<tr>
+<td>何时确定</td>
+<td>编译期</td>
+<td>运行时任意时刻</td>
+</tr>
+<tr>
+<td>能否在 Category 加</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>类型安全</td>
+<td>编译期检查</td>
+<td>无（<code>id</code> 进出）</td>
+</tr>
+<tr>
+<td>能否 weak</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table>
+<p><strong>这就是「不改变对象布局」的全部含义：加一个关联对象，<code>class_getInstanceSize</code> 不变。</strong></p>
+<h3>二、为什么 Category 不能加 ivar</h3>
+<p><code>class_ro_t</code>（只读、编译期生成）里存着 ivar 列表与布局。类的实例大小 <code>instance_size</code> 在编译期固定，所有已创建的实例、所有子类都依赖这个布局。</p>
+<p>运行期插入 ivar 意味着：</p>
+<ul>
+<li>已存在的实例需要重新分配内存（它们在其他地方被引用，无法迁移）；</li>
+<li>子类的偏移全部失效。</li>
+</ul>
+<p>所以苹果选择<strong>不改布局，改索引</strong>。<code>@property</code> 写在 Category 里只会生成方法<strong>声明</strong>，不生成 ivar 与存取方法实现——存储必须由你自己用关联对象补上（详见 Day 8）。</p>
+<h3>三、key 必须是稳定的地址</h3>
+<p>第二层 map 的 key 是 <code>const void *</code>，比较用的是<strong>指针值<strong>（`ptr_hash`），</strong>不是字符串内容比较</strong>。</p>
+<p>三种常见写法：</p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>是否可靠</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>static char kKey;</code> + <code>&amp;kKey</code></td>
+<td>✅ 推荐</td>
+<td>全 image 唯一，编译期确定</td>
+</tr>
+<tr>
+<td><code>@selector(badge)</code></td>
+<td>✅ 推荐</td>
+<td>selector 由 dyld 全局 uniquing，地址稳定且唯一</td>
+</tr>
+<tr>
+<td><code>_cmd</code>（在 getter/setter 里）</td>
+<td>✅</td>
+<td>等于 <code>@selector(该方法的 SEL)</code></td>
+</tr>
+<tr>
+<td><code>@&quot;someKey&quot;</code> 字符串字面量</td>
+<td>⚠️ 能用但脆弱</td>
+<td>依赖 linker 对字面量的去重；跨动态库、或用 <code>stringWithFormat</code> 生成时<strong>地址不同 → 取值失败</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>用字符串字面量「能跑」是因为同一个 Mach-O image 内的相同字面量通常被合并。但这是实现细节，不是契约。<strong>一旦有人把那段代码移到另一个 framework，或者在 Swift 侧用另一个字符串拼出来，就会静默取到 nil。</strong></p>
+</blockquote>
+<h3>四、为什么没有 <code>OBJC_ASSOCIATION_WEAK</code></h3>
+<p>weak 的实现依赖 <code>weak_table_t</code>：目标对象 <code>dealloc</code> 时 runtime 遍历所有指向它的 weak 变量并置 nil（Day 2）。</p>
+<p>而关联值存在全局表里，<code>value</code> 字段是一个普通的 <code>id</code>。若支持 weak：</p>
+<ul>
+<li>需要在 <code>weak_register_no_lock</code> 时为「哈希表内部的一个槽位」注册 weak 引用；</li>
+<li>该槽位地址可能因哈希表扩容而<strong>移动</strong>，weak 表里存的地址就失效了。</li>
+</ul>
+<p>因此苹果直接不提供。需要弱关联时，只能自己包装：</p>
+<pre><code class="language-objc">@interface WeakBox : NSObject
+@property (nonatomic, weak, readonly) id target;
+@end
+
+// 存：把一个 WeakBox 用 RETAIN_NONATOMIC 关联上去
+WeakBox *box = [WeakBox boxWithTarget:delegate];
+objc_setAssociatedObject(self, &amp;kKey, box, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+// 取：
+id target = [(WeakBox *)objc_getAssociatedObject(self, &amp;kKey) target];
+</code></pre>
+<h3>五、最危险的失效形式：关联对象持有宿主</h3>
+<pre><code>宿主 obj ─(has_assoc)─→ 全局关联表 ─retain─→ value ─strong─→ obj
+</code></pre>
+<p>由于 <code>value</code> 强引用宿主，宿主的引用计数<strong>永远不会归零</strong> → <code>dealloc</code> 不执行 → <code>_object_remove_assocations</code> 不会被调用 → <strong>永久泄漏，且没有任何回收路径</strong>。</p>
+<p>比 Day 2 讲的普通循环引用更隐蔽：在 Memory Graph 里，这条环经由 runtime 的全局表，不容易一眼看出。</p>
+<p>典型触发：关联一个捕获了 self 的 Block。</p>
+<pre><code class="language-objc">objc_setAssociatedObject(self, &amp;kKey, ^{ [self doSomething]; },  // ❌ 永久泄漏
+                         OBJC_ASSOCIATION_COPY_NONATOMIC);
+</code></pre>
+<h3>六、Tagged Pointer 不支持关联</h3>
+<p><code>isa.has_assoc</code> 需要一个真正的 isa 结构。Tagged Pointer 对象（如 <code>@(42)</code>、短字符串）<strong>没有分配堆内存、没有 isa<strong>，因此无法记录这个标志位，</strong>不要对它们使用关联对象</strong>。</p>
+<h3>七、Swift 中的用法</h3>
+<p>Swift <code>extension</code> 不支持存储属性，关联对象是标准绕法：</p>
+<pre><code class="language-swift">private var key: UInt8 = 0
+
+extension UIView {
+    var badge: String? {
+        get { objc_getAssociatedObject(self, &amp;key) as? String }
+        set { objc_setAssociatedObject(self, &amp;key, newValue, .OBJC_ASSOCIATION_COPY_NONATOMIC) }
+    }
+}
+</code></pre>
+<p>注意 <code>private var key: UInt8 = 0</code> 的作用<strong>只是占一个稳定地址</strong>，值本身没有意义。</p>
+</div></section><section class="lesson-section" id="connections"><h2>04 设计与取舍</h2><div class="markdown-body "><h3>一、Apple 为什么提供这个机制</h3>
+<p><strong>约束</strong>：类的布局编译期固定，但扩展存储的需求真实存在（Category、系统类、AOP）。</p>
+<table>
+<thead>
+<tr>
+<th>候选方案</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>允许 Category 加 ivar</td>
+<td>破坏既有实例布局，不可行</td>
+</tr>
+<tr>
+<td>子类化</td>
+<td>系统类（如 <code>NSString</code> 的类簇、UIKit 私有子类）无法可靠子类化</td>
+</tr>
+<tr>
+<td>自己维护全局字典</td>
+<td>key 的生命周期、线程安全都要自己处理</td>
+</tr>
+<tr>
+<td><strong>runtime 统一维护关联表</strong></td>
+<td>与对象生命周期绑定、有策略语义 → <strong>被选中</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>换来什么</strong>：</p>
+<ul>
+<li>不改源码、不改布局即可给对象挂状态；</li>
+<li>与对象生命周期绑定（宿主 <code>dealloc</code> 时自动清理）；</li>
+<li>带 retain/copy/assign 语义，接近属性；</li>
+<li>让 Category 能实现「属性」，Swift extension 能有存储能力。</li>
+</ul>
+<p><strong>付出什么</strong>：</p>
+<ul>
+<li><strong>性能</strong>：加锁 + 两次哈希，比 ivar 慢一个数量级；</li>
+<li><strong>全局锁竞争</strong>：所有对象的关联操作共用一把自旋锁；</li>
+<li><strong>类型不安全</strong>：进出都是 <code>id</code>，写错类型只能运行时发现；</li>
+<li><strong>可发现性差</strong>：状态藏在 Category 里，<code>class_copyIvarList</code> 看不到，读代码的人不知道它存在；</li>
+<li><strong>无 weak 语义</strong>；</li>
+<li><strong>调试困难</strong>：Memory Graph 上表现为「被 runtime 全局表持有」，看不出是谁设的。</li>
+</ul>
+<h3>二、方案选型</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>推荐</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>能改源码的类，需要新状态</td>
+<td><strong>直接加属性</strong></td>
+<td>类型安全、快、可发现</td>
+</tr>
+<tr>
+<td>系统类 / 三方类，量小、低频访问</td>
+<td><strong>关联对象</strong></td>
+<td>无法改源码时的唯一选择</td>
+</tr>
+<tr>
+<td>需要高频访问（列表 cell、drawRect）</td>
+<td><strong>绝不用关联对象</strong></td>
+<td>全局锁 + 哈希，会掉帧</td>
+</tr>
+<tr>
+<td>需要一对多的附加数据</td>
+<td><code>NSMapTable</code> / 自己的字典</td>
+<td>可控、可枚举、可调试</td>
+</tr>
+<tr>
+<td>需要 weak 语义</td>
+<td>包装类 + <code>RETAIN_NONATOMIC</code></td>
+<td>官方无 weak 策略</td>
+</tr>
+<tr>
+<td>只是想给 Category 加方法</td>
+<td>直接加方法，<strong>不需要存储就别用</strong></td>
+<td>最小惊讶</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判断原则<strong>：</strong>关联对象是「不能改源码」时的兜底，不是「懒得建模」的借口。</strong> 如果这块状态是你自己模块的核心模型，应该建模成真实类型，而不是挂在别人身上。</p>
+<h3>三、架构定位</h3>
+<ul>
+<li>集中管理：一个模块的所有关联 key 收敛到一个文件，避免散落；</li>
+<li>key 命名带模块前缀，避免与他人冲突；</li>
+<li>关联的值<strong>不得持有宿主</strong>；</li>
+<li>需要清理时，用同 key 设 <code>nil</code>，<strong>不用</strong> <code>objc_removeAssociatedObjects</code>。</li>
+</ul>
+<h3>四、与相邻知识的连接</h3>
+<ul>
+<li><strong>Category（Day 8）</strong>：<code>@property</code> 在 Category 中不合成 ivar，关联对象是补上存储的标准手段。</li>
+<li><strong>ARC（Day 2）</strong>：关联对象的释放发生在 <code>dealloc</code> 第二步（ivar 之后、weak 置 nil 之前）。</li>
+<li><strong>Block（Day 3）</strong>：关联一个捕获 self 的 Block = 永久泄漏。</li>
+<li><strong>Method Swizzling（Day 10）</strong>：二者常一起用于 AOP，但也一起放大了「隐式行为」的风险。</li>
+<li><strong>KVO（Day 6）</strong>：KVO 会替换 isa；关联对象不动 isa（只置 <code>has_assoc</code> 位），两者可以共存，但调试时 <code>object_getClass</code> 的结果容易混淆。</li>
+</ul>
+</div></section><section class="lesson-section" id="applications"><h2>05 工程实战</h2><div class="markdown-body "><h3>一、标准写法</h3>
+<pre><code class="language-objc">// 1. key 用静态地址，命名带前缀
+static const void *const kXYBadgeKey = &amp;kXYBadgeKey;
+// 或：static char kXYBadgeKey;  然后用 &amp;kXYBadgeKey
+
+@implementation UIView (XYBadge)
+
+- (NSString *)xy_badge {
+    return objc_getAssociatedObject(self, @selector(xy_badge));
+}
+
+- (void)setXy_badge:(NSString *)badge {
+    objc_setAssociatedObject(self, @selector(xy_badge), badge,
+                             OBJC_ASSOCIATION_COPY_NONATOMIC);
+}
+
+@end
+</code></pre>
+<p>三个要点：</p>
+<ol>
+<li><strong>key 用 <code>@selector(setter)</code></strong>——地址稳定、天然唯一、不用额外声明变量；</li>
+<li><strong>策略按需选</strong>：字符串/集合用 <code>COPY</code>，普通对象用 <code>RETAIN</code>，多线程读写用不带 <code>NONATOMIC</code> 的版本；</li>
+<li><strong>方法名加前缀</strong>（<code>xy_</code>）——Category 方法重名会静默覆盖，这是 Day 8 的坑。</li>
+</ol>
+<h3>二、需要 weak 关联时</h3>
+<pre><code class="language-objc">@interface XYWeakBox : NSObject
+@property (nonatomic, weak, readonly) id target;
++ (instancetype)boxWithTarget:(id)target;
+@end
+
+@implementation XYWeakBox
++ (instancetype)boxWithTarget:(id)target {
+    XYWeakBox *box = [XYWeakBox new];
+    box-&gt;_target = target;
+    return box;
+}
+@end
+
+// 使用
+objc_setAssociatedObject(obj, &amp;kKey, [XYWeakBox boxWithTarget:delegate],
+                         OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+id target = [(XYWeakBox *)objc_getAssociatedObject(obj, &amp;kKey) target];
+</code></pre>
+<p><strong>注意</strong>：<code>target</code> 释放后，<code>WeakBox</code> 本身仍在关联表里（只是 <code>target</code> 变 nil）。要么容忍一个空壳，要么在读取后顺手清理。</p>
+<h3>三、清理：只清自己的</h3>
+<pre><code class="language-objc">// ✅ 只移除自己那份
+objc_setAssociatedObject(self, &amp;kKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+
+// ❌ 会清掉 UIKit、三方库设的所有关联
+objc_removeAssociatedObjects(self);
+</code></pre>
+<p><code>objc_removeAssociatedObjects</code> 只适合<strong>测试代码</strong>或你自己独占的对象。</p>
+<h3>四、线程安全</h3>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>是否安全</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关联表本身（插入/查找/移除）</td>
+<td>✅ 有自旋锁</td>
+</tr>
+<tr>
+<td><strong>不带 NONATOMIC 的策略</strong></td>
+<td>✅ setter 的「取旧值 → 设新值」是原子的</td>
+</tr>
+<tr>
+<td><strong>带 NONATOMIC 的策略</strong></td>
+<td>❌ 并发读写仍可能出问题</td>
+</tr>
+<tr>
+<td><strong>值对象自身的内部状态</strong></td>
+<td>❌ 与策略无关，需自己加锁</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>RETAIN</code> / <code>COPY</code>（atomic）保证的是 <strong>setter 的原子性</strong>，不保证你「读到值之后再操作」这整段逻辑的原子性。需要复合操作时仍要自己加锁。</p>
+</blockquote>
+<h3>五、必须验证的行为</h3>
+<p>写单元测试或调试脚本覆盖：</p>
+<table>
+<thead>
+<tr>
+<th>用例</th>
+<th>断言</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>基本读写</strong></td>
+<td>set 后 get 能取回；设 nil 后取回 nil</td>
+</tr>
+<tr>
+<td><strong>宿主释放时清理</strong></td>
+<td>用 <code>weak var</code> 观察：宿主释放后，关联值也释放</td>
+</tr>
+<tr>
+<td><strong>策略语义</strong></td>
+<td><code>COPY</code> 策略取回的对象与原对象不是同一实例</td>
+</tr>
+<tr>
+<td><strong>key 唯一性</strong></td>
+<td>两个不同 key 互不覆盖</td>
+</tr>
+<tr>
+<td><strong>无泄漏</strong></td>
+<td>关联值<strong>不持有</strong>宿主时，宿主能正常 dealloc</td>
+</tr>
+<tr>
+<td><strong>Tagged Pointer</strong></td>
+<td>不对小对象使用（避免崩溃）</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-swift">func testAssociatedValueReleasedWithHost() {
+    weak var weakValue: NSObject?
+    autoreleasepool {
+        let host = NSObject()
+        let value = NSObject()
+        weakValue = value
+        objc_setAssociatedObject(host, &amp;key, value, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        XCTAssertNotNil(weakValue)
+    }
+    XCTAssertNil(weakValue, &quot;宿主释放后关联值未释放&quot;)
+}
+</code></pre>
+<h3>六、调试技巧</h3>
+<ul>
+<li>Memory Graph 里关联对象<strong>挂在 runtime 的全局表下</strong>，看不到「谁设的」——所以 key 命名要能自解释；</li>
+<li>用 <code>_objc_debug_assoc_info</code>（lldb 私有命令）或直接在 <code>objc_setAssociatedObject</code> 打符号断点，能看到调用方；</li>
+<li>怀疑关联导致泄漏时，优先用符号断点列出所有 set 调用，检查有没有「值持有宿主」。</li>
+</ul>
+<h3>七、工程护栏</h3>
+<ol>
+<li><strong>热路径禁用</strong>（cell 复用、<code>drawRect:</code>、布局计算）。</li>
+<li><strong>关联值不得持有宿主</strong>——这是硬约束，需要代码评审把关。</li>
+<li><strong>key 集中声明并加模块前缀</strong>。</li>
+<li><strong>能用真实属性就不用关联对象</strong>；存量代码里每处关联对象都应能回答「为什么不能用属性」。</li>
+<li><strong>清理时只清自己的 key</strong>。</li>
+</ol>
+</div></section><section class="lesson-section" id="reflection"><h2>06 常见坑与反思</h2><div class="markdown-body "><h3>高频坑位表</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>成因</th>
+<th>症状</th>
+<th>规避</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>用 <code>ASSIGN</code> 存会被释放的对象</strong></td>
+<td>不持有</td>
+<td><strong>悬垂指针</strong>，访问即崩溃</td>
+<td>对象一律 <code>RETAIN</code> / <code>COPY</code></td>
+</tr>
+<tr>
+<td><strong>关联值持有宿主</strong></td>
+<td>value 强引用 obj</td>
+<td><strong>永久泄漏</strong>（dealloc 永不执行）</td>
+<td>硬约束：值不得持有宿主</td>
+</tr>
+<tr>
+<td><strong>用字符串字面量作 key</strong></td>
+<td>依赖 linker 去重</td>
+<td>跨库/拼接时静默取到 nil</td>
+<td>用静态地址或 <code>@selector</code></td>
+</tr>
+<tr>
+<td><strong>误用 <code>objc_removeAssociatedObjects</code></strong></td>
+<td>清掉所有人的关联</td>
+<td>三方库静默失效</td>
+<td>用同 key 设 nil</td>
+</tr>
+<tr>
+<td><strong>想要 weak 关联</strong></td>
+<td>官方无此策略</td>
+<td>编译不过或强引用</td>
+<td>WeakBox 包装</td>
+</tr>
+<tr>
+<td><strong>高性能路径使用</strong></td>
+<td>全局锁 + 哈希</td>
+<td>掉帧</td>
+<td>改真实属性</td>
+</tr>
+<tr>
+<td><strong>在关联值的 dealloc 里访问宿主 ivar</strong></td>
+<td>关联对象在 ivar <strong>之后</strong>释放</td>
+<td>野指针崩溃</td>
+<td>不在其 dealloc 中回指宿主</td>
+</tr>
+<tr>
+<td><strong>对 Tagged Pointer 设关联</strong></td>
+<td>无 isa，无法置 <code>has_assoc</code></td>
+<td>未定义行为</td>
+<td>只对堆对象使用</td>
+</tr>
+<tr>
+<td><strong>Category 方法名无前缀</strong></td>
+<td>重名覆盖</td>
+<td>别人的实现被吞</td>
+<td>统一加模块前缀</td>
+</tr>
+<tr>
+<td><strong>把核心状态挂在别人身上</strong></td>
+<td>图省事</td>
+<td>可发现性差、难重构</td>
+<td>核心状态建模成真实类型</td>
+</tr>
+<tr>
+<td><strong>atomic 误以为线程安全</strong></td>
+<td>只保证 setter 原子</td>
+<td>复合操作仍竞态</td>
+<td>自己加锁</td>
+</tr>
+<tr>
+<td><strong>与 KVO 混用看不清 isa</strong></td>
+<td>KVO 替换 isa</td>
+<td>调试误判</td>
+<td>用 <code>object_getClass</code> 确认真实类</td>
+</tr>
+</tbody>
+</table>
+<h3>三条反思</h3>
+<ol>
+<li><strong><code>ASSIGN</code> 是有毒的默认选择。<strong> 它看起来最「轻量」，实际上把「内存管理正确」变成了「你必须证明被关联对象一定活得比宿主久」。而这恰恰是使用关联对象的典型场景里最难证明的事。</strong>默认 <code>RETAIN_NONATOMIC</code>，只有当你能说出理由时才用别的。</strong></li>
+<li><strong>隐式状态的代价在半年后支付。</strong> 关联对象让 Category 拥有了存储能力，代价是这块存储<strong>不在类的声明里、不在 ivar 列表里、不在 Memory Graph 的直觉位置</strong>。写的时候很爽，接手的人只能靠 grep <code>objc_setAssociatedObject</code> 才能知道这个类到底有什么状态。能建模成真实属性，就不要图省事。</li>
+<li><strong>「挂在别人身上」会放大生命周期错误。</strong> 普通循环引用至少还能在 Memory Graph 里看到一个环；关联对象的环经过 runtime 全局表，图上不明显，而且<strong>永远等不到 dealloc 去打破它</strong>。这条路上，<code>weak</code> 包装不是可选项，是必需项。</li>
+</ol>
+</div></section><section class="lesson-section" id="questions"><h2>07 知识验收</h2><ol><li>为什么 Category 不能添加实例变量？Associated Object 如何在「不改变对象布局」的前提下解决这个问题？</li><li>画出关联对象的三层哈希结构，并说明 <code>objc_setAssociatedObject</code> 的完整流程。</li><li>五种关联策略分别对应什么属性修饰符？为什么没有 <code>OBJC_ASSOCIATION_WEAK</code>？</li><li>为什么 key 必须是稳定地址？用 <code>@&quot;someKey&quot;</code> 字符串字面量作 key 在什么情况下会失效？</li><li>关联对象在什么时候被释放？它在 <code>dealloc</code> 中的顺序是怎样的？这个顺序带来什么风险？</li><li>为什么 <code>objc_removeAssociatedObjects</code> 不该在生产代码中使用？正确的清理方式是什么？</li><li>什么情况下关联对象会造成<strong>永久泄漏</strong>？它与普通的循环引用有什么不同？</li><li>关联一个捕获了 self 的 Block 会发生什么？应该如何避免？</li><li>在 Swift 中如何用关联对象给 extension 加存储属性？<code>private var key: UInt8 = 0</code> 这行代码的作用是什么？</li><li><code>OBJC_ASSOCIATION_RETAIN</code> 与 <code>OBJC_ASSOCIATION_RETAIN_NONATOMIC</code> 的区别是什么？前者能保证线程安全吗？</li><li>对比 ivar 与关联对象在性能、类型安全、可发现性上的差异。什么场景下绝对不该用关联对象？</li><li>如何为关联对象写单元测试？需要覆盖哪些行为？</li><li>给出一个真实（或可信构造的）故障：现象、证据链、根因与改进方案，要求涉及关联对象。</li></ol></section><section class="lesson-section" id="mastery"><h2>08 掌握标准</h2><div class="markdown-body "><p><strong>一句话总结</strong>：Category 不能加 ivar（类布局编译期固定），于是 runtime 在对象外部用「<code>AssociationsHashMap</code>（宿主地址）→ <code>ObjectAssociationMap</code>（key）→ <code>ObjcAssociation</code>（policy + value）」三层表挂在全局，并在宿主 <code>dealloc</code> 的第二步（<code>_object_remove_associations</code>，位于 ivar 析构之后）统一清理；代价是加锁 + 两次哈希的性能、无 weak 语义、以及「值持有宿主」时无法打破的永久泄漏。</p>
+<p><strong>掌握标准</strong>：</p>
+<ul>
+<li><strong>60 分</strong>：能说清 Category 为何不能加 ivar；会用 <code>objc_setAssociatedObject</code> / <code>get</code> 配合静态地址 key；能列出五种策略并知道默认该选哪个。</li>
+<li><strong>80 分</strong>：能画出三层表结构与 set 的完整流程；能解释关联对象在 <code>dealloc</code> 中的清理时机与顺序风险；能说明为何没有 weak 策略并给出 WeakBox 方案；能识别「值持有宿主」的永久泄漏。</li>
+<li><strong>100 分</strong>：能从「对象布局编译期固定」推出关联对象存在的必然性；能论证 key 用字符串字面量的失效边界；能在 ivar / 子类化 / NSMapTable / 关联对象之间做出有理据的选型；能把「关联值不得持有宿主」落成评审硬约束，并解释隐式状态对长期可维护性的具体危害。</li>
+</ul>
+</div></section><section class="lesson-section" id="diagrams"><h2>图解</h2><h3>关联对象三层哈希结构</h3><pre class="mermaid">flowchart TD
+  A[&quot;AssociationsManager（自旋锁）&quot;] --&gt; B[&quot;AssociationsHashMap 全局唯一&quot;]
+  B --&gt; C[&quot;DisguisedPtr 宿主对象地址&quot;]
+  C --&gt; D[&quot;ObjectAssociationMap&quot;]
+  D --&gt; E[&quot;const void* key（传入的键）&quot;]
+  E --&gt; F[&quot;ObjcAssociation&quot;]
+  F --&gt; G[&quot;policy&quot;]
+  F --&gt; H[&quot;value&quot;]
+  H -. &quot;不得强引用宿主&quot; .-&gt; C</pre><h3>关联对象在 dealloc 中的位置</h3><pre class="mermaid">flowchart TD
+  A[&quot;dealloc&quot;] --&gt; B[&quot;object_dispose&quot;]
+  B --&gt; C[&quot;objc_destructInstance&quot;]
+  C --&gt; D[&quot;① object_cxxDestruct：析构 ivar&quot;]
+  D --&gt; E[&quot;② _object_remove_assocations：移除关联对象&quot;]
+  E --&gt; F[&quot;③ clearDeallocating：weak 置 nil、清 SideTable&quot;]
+  F --&gt; G[&quot;free&quot;]
+  D -. &quot;关联值的 dealloc 中访问宿主 ivar 已越界&quot; .-&gt; E</pre></section><section class="lesson-section" id="references"><h2>参考资料</h2><ul class="reference-list"><li>Apple Objective-C Runtime Reference：objc_setAssociatedObject / objc_getAssociatedObject</li><li>Apple Programming with Objective-C：Working with Protocols / Categories</li><li>objc4 源码：objc-references.mm（AssociationsManager / _object_set_associative_reference）</li><li>objc4 源码：objc-runtime-new.h（isa.has_assoc 位）</li><li>Apple Concepts in Objective-C Programming：Customizing Existing Classes</li></ul></section><nav class="lesson-nav"><a href="IOS-D008.html">← Category：方法扩展与加载机制</a><a href="../index.html">返回专题目录</a><a href="IOS-D010.html">Method Swizzling：方法交换、AOP 与安全边界 →</a></nav></article></div></main><footer><div class="shell">结构化数据是唯一事实源 · 让每一次定时学习持续积累</div></footer></body></html>
