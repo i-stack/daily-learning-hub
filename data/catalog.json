@@ -39,6 +39,16 @@
     "description": "从系统运行机制出发，串联 API、Apple 设计动机、架构取舍、工程实战与面试表达。",
     "category": "技术训练营",
     "status": "active",
-    "curriculum": "curriculum.json"
+    "curriculum": "curriculum.json",
+    "sections": [
+      { "key": "original", "label": "01 背景与 API" },
+      { "key": "explanation", "label": "02 运行机制" },
+      { "key": "coreIdea", "label": "03 底层原理" },
+      { "key": "connections", "label": "04 设计与取舍" },
+      { "key": "applications", "label": "05 工程实战" },
+      { "key": "reflection", "label": "06 常见坑与反思" },
+      { "key": "questions", "label": "07 知识验收" },
+      { "key": "mastery", "label": "08 掌握标准" }
+    ]
   }
 ]
