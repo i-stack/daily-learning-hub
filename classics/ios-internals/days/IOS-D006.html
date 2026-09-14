@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="从 isa 混写与 NSKVONotifying 动态子类出发，打通 KVO 的注册、setter 改写、通知派发、依赖键与手动通知，并给出生命周期边界、线程语义与可用于面试和排障的最小验证实验。"><title>KVO：动态子类与观察机制｜每日学习库</title><link rel="stylesheet" href="../../../assets/styles.css"><link rel="stylesheet" href="../../../assets/hub.css"><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script><script>addEventListener('DOMContentLoaded',()=>{mermaid.initialize({startOnLoad:true});});</script></head><body><header class="shell site-head"><a class="brand" href="../../../index.html">每日学习库</a><nav class="head-links"><a href="../../../index.html#collections">学习专题</a><a href="../../../index.html#lessons">全部内容</a></nav></header><main class="shell"><div class="breadcrumb"><a href="../../../index.html">每日学习库</a> › <a href="../index.html">iOS 底层训练营</a> › IOS-D006</div><header class="entry-head"><div class="eyebrow">IOS-D006</div><h1>KVO：动态子类与观察机制</h1><div class="meta">动态系统 · 2026-08-15 · KVO / 动态子类 / isa 混写 / NSKVONotifying / observationInfo / context / 集合代理 / 线程语义 / 依赖键 / @objc dynamic</div></header><div class="entry-grid"><aside class="toc"><a href="#original">01 背景与 API</a><a href="#explanation">02 运行机制</a><a href="#coreIdea">03 底层原理</a><a href="#connections">04 设计与取舍</a><a href="#applications">05 工程实战</a><a href="#reflection">06 常见坑与反思</a><a href="#questions">07 知识验收</a><a href="#mastery">08 掌握标准</a></aside><article><p class="hero-copy">从 isa 混写与 NSKVONotifying 动态子类出发，打通 KVO 的注册、setter 改写、通知派发、依赖键与手动通知，并给出生命周期边界、线程语义与可用于面试和排障的最小验证实验。</p><section class="lesson-section" id="original"><h2>01 背景与 API</h2><div class="markdown-body "><h3>要解决的问题</h3>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="从 isa 混写与 NSKVONotifying 动态子类出发，打通 KVO 的注册、setter 改写、通知派发、依赖键与手动通知，并给出生命周期边界、线程语义与可用于面试和排障的最小验证实验。"><title>KVO：动态子类与观察机制｜每日学习库</title><link rel="stylesheet" href="../../../assets/styles.css"><link rel="stylesheet" href="../../../assets/hub.css"><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script><script>addEventListener('DOMContentLoaded',()=>{mermaid.initialize({startOnLoad:true});});</script></head><body><header class="shell site-head"><a class="brand" href="../../../index.html">每日学习库</a><nav class="head-links"><a href="../../../index.html#collections">学习专题</a><a href="../../../index.html#lessons">全部内容</a></nav></header><main class="shell"><div class="breadcrumb"><a href="../../../index.html">每日学习库</a> › <a href="../index.html">iOS 底层训练营</a> › IOS-D006</div><header class="entry-head"><div class="eyebrow">IOS-D006</div><h1>KVO：动态子类与观察机制</h1><div class="meta">动态系统 · 2026-08-15 · KVO / 动态子类 / isa 混写 / NSKVONotifying / observationInfo / context / 集合代理 / 线程语义 / 依赖键 / @objc dynamic</div></header><div class="entry-grid"><aside class="toc"><a href="#original">01 背景与 API</a><a href="#explanation">02 运行机制</a><a href="#coreIdea">03 底层原理</a><a href="#connections">04 设计与取舍</a><a href="#applications">05 工程实战</a><a href="#reflection">06 常见坑与反思</a><a href="#questions">07 知识验收</a><a href="#mastery">08 掌握标准</a><a href="#references">参考资料</a></aside><article><p class="hero-copy">从 isa 混写与 NSKVONotifying 动态子类出发，打通 KVO 的注册、setter 改写、通知派发、依赖键与手动通知，并给出生命周期边界、线程语义与可用于面试和排障的最小验证实验。</p><section class="lesson-section" id="original"><h2>01 背景与 API</h2><div class="markdown-body "><h3>要解决的问题</h3>
 <p>需要在<strong>不修改被观察类源码</strong>的前提下，让多个观察者拿到属性变化的旧值与新值。典型对象正是源码不在自己手里的系统类：<code>AVPlayerItem.status</code>、<code>WKWebView.estimatedProgress</code>、<code>UIView.bounds</code>、<code>NSOperation.isFinished</code>。</p>
 <h3>三条候选路径的取舍</h3>
 <table>
@@ -593,29 +593,29 @@ token = model.observe(\.name, options: [.initial, .new]) { _, change in
 <li><strong>100 分</strong>：能讲明 Apple 选择 isa 混写而非类级 swizzling 的取舍，解释依赖键与集合代理的底层机制，判断何时改用 <code>@Observable</code> / Combine，并给出把 KVO 收敛在基础设施边界的架构方案。</li>
 </ul>
 </div></section><section class="lesson-section" id="diagrams"><h2>图解</h2><h3>KVO 注册与通知派发链路</h3><pre class="mermaid">flowchart TD
-  A[&quotaddObserver:forKeyPath:options:context:&quot] --&gt; B{&quotNSKVONotifying_XXX 已存在?&quot}
-  B -- 否 --&gt; C[&quotobjc_allocateClassPair + objc_registerClassPair&quot]
-  C --&gt; D[&quot重写 setName: / class / dealloc / _isKVOA&quot]
+  A[&quot;addObserver:forKeyPath:options:context:&quot;] --&gt; B{&quot;NSKVONotifying_XXX 已存在?&quot;}
+  B -- 否 --&gt; C[&quot;objc_allocateClassPair + objc_registerClassPair&quot;]
+  C --&gt; D[&quot;重写 setName: / class / dealloc / _isKVOA&quot;]
   B -- 是 --&gt; D
-  D --&gt; E[&quotobject_setClass：把该实例的 isa 指向子类&quot]
-  E --&gt; F[&quotp.name = x 命中子类 setter&quot]
-  F --&gt; G[&quotwillChangeValueForKey:&quot]
-  G --&gt; H[&quotsuper setter 执行原类实现&quot]
-  H --&gt; I[&quotdidChangeValueForKey:&quot]
-  I --&gt; J[&quot遍历 observationInfo 观察者链&quot]
-  J --&gt; K[&quot同步回调 observeValueForKeyPath:&quot]
+  D --&gt; E[&quot;object_setClass：把该实例的 isa 指向子类&quot;]
+  E --&gt; F[&quot;p.name = x 命中子类 setter&quot;]
+  F --&gt; G[&quot;willChangeValueForKey:&quot;]
+  G --&gt; H[&quot;super setter 执行原类实现&quot;]
+  H --&gt; I[&quot;didChangeValueForKey:&quot;]
+  I --&gt; J[&quot;遍历 observationInfo 观察者链&quot;]
+  J --&gt; K[&quot;同步回调 observeValueForKeyPath:&quot;]
   K --&gt; L{还有观察者?}
   L -- 是 --&gt; K
   L -- 否 --&gt; M[返回]
-  N[&quotremoveObserver 移除最后一个&quot] --&gt; O[&quotisa 指回原类，子类不销毁&quot]</pre><h3>KVO 生命周期与崩溃边界</h3><pre class="mermaid">flowchart LR
+  N[&quot;removeObserver 移除最后一个&quot;] --&gt; O[&quot;isa 指回原类，子类不销毁&quot;]</pre><h3>KVO 生命周期与崩溃边界</h3><pre class="mermaid">flowchart LR
   subgraph 正确
-    R1[注册观察] --&gt; R2[&quot持有 token / FBKVOController&quot]
-    R2 --&gt; R3[&quotdealloc 或 invalidate 时解绑&quot]
-    R3 --&gt; R4[&quotisa 指回原类，无残留&quot]
+    R1[注册观察] --&gt; R2[&quot;持有 token / FBKVOController&quot;]
+    R2 --&gt; R3[&quot;dealloc 或 invalidate 时解绑&quot;]
+    R3 --&gt; R4[&quot;isa 指回原类，无残留&quot;]
   end
   subgraph 错误
-    E1[&quotobserver 已释放但未 remove&quot] --&gt; E2[&quotdidChange 向悬垂指针发消息&quot]
+    E1[&quot;observer 已释放但未 remove&quot;] --&gt; E2[&quot;didChange 向悬垂指针发消息&quot;]
     E2 --&gt; E3[EXC_BAD_ACCESS]
-    E4[&quot重复 remove 或 context 不匹配&quot] --&gt; E5[&quotCannot remove an observer 异常&quot]
-    E6[&quot未实现 observeValueForKeyPath:&quot] --&gt; E7[&quotmessage was received but not handled&quot]
-  end</pre></section><nav class="lesson-nav"><a href="IOS-D005.html">← KVC：键值编码的查找机制</a><a href="../index.html">返回专题目录</a><a href="IOS-D007.html">AutoreleasePool：延迟释放与内存峰值 →</a></nav></article></div></main><footer><div class="shell">结构化数据是唯一事实源 · 让每一次定时学习持续积累</div></footer></body></html>
+    E4[&quot;重复 remove 或 context 不匹配&quot;] --&gt; E5[&quot;Cannot remove an observer 异常&quot;]
+    E6[&quot;未实现 observeValueForKeyPath:&quot;] --&gt; E7[&quot;message was received but not handled&quot;]
+  end</pre></section><section class="lesson-section" id="references"><h2>参考资料</h2><ul class="reference-list"><li>Apple Key-Value Observing Programming Guide</li><li>Apple NSKeyValueObserving Protocol Reference</li><li>Apple Key-Value Coding Programming Guide（setter 查找顺序与集合代理）</li><li>Apple NSObject observationInfo / setObservationInfo:</li><li>Apple NSKeyValueObservation（Swift，iOS 11+，token 自动解绑）</li><li>Apple Migrating from KVO to Swift Observation（@Observable，iOS 17+）</li></ul></section><nav class="lesson-nav"><a href="IOS-D005.html">← KVC：键值编码的查找机制</a><a href="../index.html">返回专题目录</a><a href="IOS-D007.html">AutoreleasePool：延迟释放与内存峰值 →</a></nav></article></div></main><footer><div class="shell">结构化数据是唯一事实源 · 让每一次定时学习持续积累</div></footer></body></html>

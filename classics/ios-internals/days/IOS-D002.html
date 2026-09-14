@@ -1,8 +1,717 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="ARC：引用计数与对象生命周期：从 API、底层机制、设计取舍到工程验证建立完整理解。"><title>ARC：引用计数与对象生命周期｜每日学习库</title><link rel="stylesheet" href="../../../assets/styles.css"><link rel="stylesheet" href="../../../assets/hub.css"></head><body><header class="shell site-head"><a class="brand" href="../../../index.html">每日学习库</a><nav class="head-links"><a href="../../../index.html#collections">学习专题</a><a href="../../../index.html#lessons">全部内容</a></nav></header><main class="shell"><div class="breadcrumb"><a href="../../../index.html">每日学习库</a> › <a href="../index.html">iOS 底层训练营</a> › IOS-D002</div><header class="entry-head"><div class="eyebrow">IOS-D002</div><h1>ARC：引用计数与对象生命周期</h1><div class="meta">内存管理 · 2026-08-11 · ARC / 引用计数 / 对象生命周期</div></header><div class="entry-grid"><aside class="toc"><a href="#original">01 背景与 API</a><a href="#explanation">02 运行机制</a><a href="#coreIdea">03 底层原理</a><a href="#connections">04 设计与取舍</a><a href="#applications">05 工程实战</a><a href="#reflection">06 常见坑与反思</a><a href="#questions">07 知识验收</a><a href="#mastery">08 掌握标准</a></aside><article><p class="hero-copy">ARC：引用计数与对象生命周期：从 API、底层机制、设计取舍到工程验证建立完整理解。</p><section class="lesson-section" id="original"><h2>01 背景与 API</h2><div class="markdown-body "><p>背景、API 与场景：ARC：引用计数与对象生命周期 是 iOS 底层训练营 Day 2 的核心主题。先从常用入口和真实工程现象建立问题边界，再进入实现机制。</p>
-</div></section><section class="lesson-section" id="explanation"><h2>02 运行机制</h2><div class="markdown-body "><p>运行机制：strong/weak/unowned 与编译期插入的引用计数操作共同决定对象何时析构；weak 依赖运行时弱引用表自动置 nil。</p>
-</div></section><section class="lesson-section" id="coreIdea"><h2>03 底层原理</h2><div class="markdown-body "><p>核心原理：strong/weak/unowned 与编译期插入的引用计数操作共同决定对象何时析构；weak 依赖运行时弱引用表自动置 nil。</p>
-</div></section><section class="lesson-section" id="connections"><h2>04 设计与取舍</h2><div class="markdown-body "><p>Apple 设计与架构：该机制在性能、兼容性、可扩展性和开发复杂度之间做取舍。架构设计必须明确所有者、执行上下文、生命周期与失败边界。</p>
-</div></section><section class="lesson-section" id="applications"><h2>05 工程实战</h2><div class="markdown-body "><p>工程实战：画出闭包、delegate、Timer 和缓存的所有权图，再用 Memory Graph 与 deinit 验证释放。</p>
-</div></section><section class="lesson-section" id="reflection"><h2>06 常见坑与反思</h2><div class="markdown-body "><p>常见坑与反思：weak 不是万能修复；unowned 的生命周期假设失败会崩溃；ARC 不能自动消除循环引用。</p>
-</div></section><section class="lesson-section" id="questions"><h2>07 知识验收</h2><ol><li>请脱稿解释“ARC：引用计数与对象生命周期”解决的核心问题与主要 API。</li><li>画出本课从调用入口到底层结果的完整链路。</li><li>Apple 为什么采用这种设计？它换来了什么，又付出了什么？</li><li>给出一个真实故障，并说明用什么证据验证根因。</li><li>什么条件下你会选择另一种实现？</li></ol></section><section class="lesson-section" id="mastery"><h2>08 掌握标准</h2><div class="markdown-body "><p>一句话总结：strong/weak/unowned 与编译期插入的引用计数操作共同决定对象何时析构；weak 依赖运行时弱引用表自动置 nil。 掌握标准：能讲清 API、链路与取舍；能判断适用边界；能用最小实验或 Instruments 证据验证，而不只背诵结论。</p>
-</div></section><nav class="lesson-nav"><a href="IOS-D001.html">← RunLoop：事件循环与线程保活</a><a href="../index.html">返回专题目录</a><a href="IOS-D003.html">Block：闭包、捕获与异步编程 →</a></nav></article></div></main><footer><div class="shell">结构化数据是唯一事实源 · 让每一次定时学习持续积累</div></footer></body></html>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="ARC 不是垃圾回收，而是编译器在编译期插入 retain/release、runtime 在运行时维护计数表的一套协作机制。本课从 extra_rc 与 SideTable 的存储结构出发，打通对象从分配到 dealloc 的完整生命周期、weak 自动置 nil 的实现、以及 ARC 留下的唯一必须由人填的坑——循环引用，并给出所有权图与 Memory Graph 验证方法。"><title>ARC：引用计数与对象生命周期｜每日学习库</title><link rel="stylesheet" href="../../../assets/styles.css"><link rel="stylesheet" href="../../../assets/hub.css"><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script><script>addEventListener('DOMContentLoaded',()=>{mermaid.initialize({startOnLoad:true});});</script></head><body><header class="shell site-head"><a class="brand" href="../../../index.html">每日学习库</a><nav class="head-links"><a href="../../../index.html#collections">学习专题</a><a href="../../../index.html#lessons">全部内容</a></nav></header><main class="shell"><div class="breadcrumb"><a href="../../../index.html">每日学习库</a> › <a href="../index.html">iOS 底层训练营</a> › IOS-D002</div><header class="entry-head"><div class="eyebrow">IOS-D002</div><h1>ARC：引用计数与对象生命周期</h1><div class="meta">内存管理 · 2026-08-11 · ARC / 引用计数 / extra_rc / SideTable / weak 表 / dealloc / 循环引用 / objc_storeStrong / unowned</div></header><div class="entry-grid"><aside class="toc"><a href="#original">01 背景与 API</a><a href="#explanation">02 运行机制</a><a href="#coreIdea">03 底层原理</a><a href="#connections">04 设计与取舍</a><a href="#applications">05 工程实战</a><a href="#reflection">06 常见坑与反思</a><a href="#questions">07 知识验收</a><a href="#mastery">08 掌握标准</a><a href="#references">参考资料</a></aside><article><p class="hero-copy">ARC 不是垃圾回收，而是编译器在编译期插入 retain/release、runtime 在运行时维护计数表的一套协作机制。本课从 extra_rc 与 SideTable 的存储结构出发，打通对象从分配到 dealloc 的完整生命周期、weak 自动置 nil 的实现、以及 ARC 留下的唯一必须由人填的坑——循环引用，并给出所有权图与 Memory Graph 验证方法。</p><section class="lesson-section" id="original"><h2>01 背景与 API</h2><div class="markdown-body "><h3>要解决的问题</h3>
+<p>手动内存管理（MRR）要求开发者自己写 <code>retain</code> / <code>release</code> / <code>autorelease</code>，漏一次就泄漏，多一次就野指针。ARC 的目标：<strong>让编译器替你写这些调用，同时保持释放时机的确定性</strong>。</p>
+<h3>ARC 不是 GC</h3>
+<p>这是面试第一个分水岭：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>ARC</th>
+<th>垃圾回收（GC）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>决策时机</td>
+<td><strong>编译期</strong>插入调用</td>
+<td>运行时扫描</td>
+</tr>
+<tr>
+<td>释放时机</td>
+<td><strong>确定</strong>（引用计数归零那一刻）</td>
+<td>不确定（GC 触发时）</td>
+</tr>
+<tr>
+<td>停顿</td>
+<td>无全局停顿</td>
+<td>可能有 Stop-The-World</td>
+</tr>
+<tr>
+<td>循环引用</td>
+<td><strong>无法自动处理</strong></td>
+<td>可回收</td>
+</tr>
+<tr>
+<td>开销位置</td>
+<td>每次赋值多几条指令</td>
+<td>周期性扫描</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ARC = 编译期所有权分析 + 运行时引用计数表</strong>。没有扫描、没有追踪、没有循环检测。</p>
+<h3>所有权修饰符</h3>
+<table>
+<thead>
+<tr>
+<th>Swift</th>
+<th>Objective-C</th>
+<th>语义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>strong</code>（默认）</td>
+<td><code>__strong</code></td>
+<td>持有，引用计数 +1</td>
+</tr>
+<tr>
+<td><code>weak</code></td>
+<td><code>__weak</code></td>
+<td>不持有，目标释放后<strong>自动置 nil</strong></td>
+</tr>
+<tr>
+<td><code>unowned</code></td>
+<td><code>__unsafe_unretained</code></td>
+<td>不持有，目标释放后<strong>不置 nil</strong>（Swift 侧访问会崩）</td>
+</tr>
+<tr>
+<td><code>unowned(unsafe)</code></td>
+<td><code>__unsafe_unretained</code></td>
+<td>同上，明确放弃安全检查</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>__autoreleasing</code></td>
+<td>加入 autorelease pool（见 Day 7）</td>
+</tr>
+</tbody>
+</table>
+<p>属性关键字对照：</p>
+<table>
+<thead>
+<tr>
+<th>关键字</th>
+<th>用于</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>strong</code></td>
+<td>对象</td>
+<td>默认</td>
+</tr>
+<tr>
+<td><code>copy</code></td>
+<td>有可变子类的类型（<code>NSString</code> / <code>NSArray</code> / Block）</td>
+<td>setter 里执行 <code>copy</code></td>
+</tr>
+<tr>
+<td><code>weak</code></td>
+<td>delegate、Outlet</td>
+<td>自动置 nil</td>
+</tr>
+<tr>
+<td><code>assign</code></td>
+<td><strong>标量</strong>（<code>int</code> / <code>CGFloat</code> / <code>BOOL</code>）</td>
+<td>修饰对象会产生野指针</td>
+</tr>
+<tr>
+<td><code>unsafe_unretained</code></td>
+<td>对象（极少用）</td>
+<td>不置 nil</td>
+</tr>
+</tbody>
+</table>
+<h3>编译期插入了什么</h3>
+<p>ARC 的全部魔法是 Clang 在编译期把赋值/作用域结束翻译成 runtime 函数调用：</p>
+<table>
+<thead>
+<tr>
+<th>源码写法</th>
+<th>编译后调用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>obj = newValue;</code></td>
+<td><code>objc_storeStrong(&amp;obj, newValue)</code></td>
+</tr>
+<tr>
+<td>局部变量出作用域</td>
+<td><code>objc_storeStrong(&amp;obj, nil)</code></td>
+</tr>
+<tr>
+<td>读取 weak 变量</td>
+<td><code>objc_loadWeakRetained(&amp;weakObj)</code></td>
+</tr>
+<tr>
+<td><code>__weak id w = obj;</code></td>
+<td><code>objc_initWeak(&amp;w, obj)</code></td>
+</tr>
+<tr>
+<td>从方法返回对象</td>
+<td><code>objc_autoreleaseReturnValue(obj)</code></td>
+</tr>
+<tr>
+<td>接收方法返回值</td>
+<td><code>objc_retainAutoreleasedReturnValue(obj)</code></td>
+</tr>
+</tbody>
+</table>
+<h3>与 Core Foundation 的桥接</h3>
+<p>ARC 不管 CF 对象，跨框架时必须显式说明所有权转移：</p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>语义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>__bridge</code></td>
+<td>只转类型，<strong>不转移所有权</strong>（最常用）</td>
+</tr>
+<tr>
+<td><code>__bridge_retained</code> / <code>CFBridgingRetain</code></td>
+<td>转交所有权给 CF，需手动 <code>CFRelease</code></td>
+</tr>
+<tr>
+<td><code>__bridge_transfer</code> / <code>CFBridgingRelease</code></td>
+<td>把所有权转回 ARC，ARC 负责释放</td>
+</tr>
+</tbody>
+</table>
+</div></section><section class="lesson-section" id="explanation"><h2>02 运行机制</h2><div class="markdown-body "><h3>一、引用计数存在哪里</h3>
+<p>对象自己不存完整的引用计数，而是<strong>两级存储</strong>：</p>
+<pre class="mermaid">flowchart TD
+    A[&quot;对象 isa&quot;] --&gt; B{&quot;nonpointer?&quot;}
+    B -- 否 --&gt; C[&quot;SideTable 的 RefcountMap&quot;]
+    B -- 是 --&gt; D[&quot;isa.extra_rc（19 位）&quot;]
+    D --&gt; E{&quot;extra_rc 溢出?&quot;}
+    E -- 否 --&gt; F[&quot;计数就在 isa 里，无需加锁&quot;]
+    E -- 是 --&gt; G[&quot;移一半到 SideTable，has_sidetable_rc=1&quot;]
+    G --&gt; C
+</pre>
+<ul>
+<li><strong>一级：<code>isa.extra_rc</code></strong>（arm64 下 19 位）。绝大多数对象的引用计数从未超过 19 位能表示的范围，因此<strong>常见路径完全不需要查表、不需要加锁</strong>，只是几条位运算指令。</li>
+<li><strong>二级：<code>SideTable</code></strong>。全局的<strong>分片哈希表</strong>（<code>StripedMap</code>，iOS 上 8 片、macOS 上 64 片），每片自带一把自旋锁，内含：
+<ul>
+<li><code>RefcountMap</code>：对象地址 → 引用计数（外挂部分）；</li>
+<li><code>weak_table_t</code>：弱引用表。</li>
+</ul>
+</li>
+</ul>
+<p>分片的目的就是<strong>降低锁竞争</strong>——不同对象大概率落在不同片，可以并发加减计数。</p>
+<h3>二、一次 retain / release 的路径</h3>
+<pre><code>objc_retain(obj)
+  ├── Tagged Pointer?        → 直接返回（不分配堆内存的对象没有计数）
+  ├── nonpointer isa?        → addc(isa, RC_ONE)，检测进位
+  │       └── 溢出 → 移一半进 SideTable，置 has_sidetable_rc
+  └── 否则                   → 加自旋锁，SideTable.refcnts 加一
+
+objc_release(obj)
+  ├── Tagged Pointer?        → 直接返回
+  ├── nonpointer isa?        → subc(isa, RC_ONE)，检测下溢
+  │       └── 下溢 → 从 SideTable 借回，仍为 0 则触发 dealloc
+  └── 否则                   → 查表减一，为 0 则 dealloc
+</code></pre>
+<h3>三、dealloc 内部做了什么</h3>
+<p>引用计数归零后进入 <code>dealloc</code>，真正干活的在 <code>objc_destructInstance</code>：</p>
+<pre><code>dealloc
+  → _objc_rootDealloc
+      → object_dispose
+          → objc_destructInstance
+              1. 有 C++ 成员？        → object_cxxDestruct（调 .cxx_destruct）
+              2. 有关联对象？         → _object_remove_assocations
+              3. clearDeallocating
+                   - nonpointer isa  → clearDeallocating_slow
+                   - weakly_referenced → weak_clear_no_lock：把 weak 表里
+                                         所有指向它的 weak 变量**全部置 nil**
+                   - has_sidetable_rc  → 从 SideTable 移除计数记录
+          → free(obj)
+</code></pre>
+<p><strong>关键事实：<code>weak</code> 变量置 nil 发生在 <code>dealloc</code> 过程中（析构之后、free 之前），由 <code>weak_clear_no_lock</code> 完成。</strong> 这就是为什么 weak-strong dance 里 <code>strongSelf</code> 一旦拿到，就保证在后续代码里不会被释放。</p>
+<h3>四、weak 表的结构</h3>
+<pre><code>weak_table_t（全局，在 SideTable 里）
+   └── weak_entries（哈希数组）
+         └── weak_entry_t（按目标对象聚合）
+               ├── referent：被指向的对象地址
+               └── referrers：所有指向它的 weak 变量地址（动态数组/哈希）
+</code></pre>
+<ul>
+<li>注册：<code>objc_initWeak</code> → <code>storeWeak</code> → <code>weak_register_no_lock</code>（插入 <code>weak_entry_t.referrers</code>）；</li>
+<li>清除：目标 <code>dealloc</code> 时 <code>weak_clear_no_lock</code> 遍历 <code>referrers</code> 全部写 0；</li>
+<li>读取：<code>objc_loadWeakRetained</code> 会 <strong>retain + autorelease</strong> 一次，保证你在使用期间对象不会被别人释放。</li>
+</ul>
+<h3>五、对象生命周期全景</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>发生什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分配</td>
+<td><code>alloc</code> → <code>calloc</code>，isa 初始化（nonpointer，<code>extra_rc = 1</code>）</td>
+</tr>
+<tr>
+<td>使用</td>
+<td>每次 strong 赋值 <code>objc_storeStrong</code>：retain 新值 → 写入 → release 旧值</td>
+</tr>
+<tr>
+<td>出作用域</td>
+<td>编译器插入 <code>objc_storeStrong(&amp;obj, nil)</code> → 计数减一</td>
+</tr>
+<tr>
+<td>计数归零</td>
+<td><code>dealloc</code> → 析构 ivar → 移除关联对象 → weak 置 nil → <code>free</code></td>
+</tr>
+<tr>
+<td>悬垂</td>
+<td><code>__unsafe_unretained</code> / <code>unowned</code> 指针<strong>不会被置 nil</strong>，成野指针</td>
+</tr>
+</tbody>
+</table>
+</div></section><section class="lesson-section" id="coreIdea"><h2>03 底层原理</h2><div class="markdown-body "><h3>一、根本命题：把所有权变成类型系统的一部分</h3>
+<p>ARC 的核心创新不是「自动计数」，而是<strong>把所有权语义写进了类型</strong>：<code>strong</code> / <code>weak</code> / <code>unowned</code> 是类型修饰符，编译器据此决定在哪里插入 retain/release。</p>
+<p>这带来一个直接结论：<strong>ARC 是确定性的</strong>。你读代码就能知道对象何时释放——不需要知道 GC 什么时候跑。这对 UI 开发极其重要：资源（文件句柄、纹理、音频缓冲）可以绑定在 <code>dealloc</code> 上及时释放。</p>
+<h3>二、<code>objc_storeStrong</code> 的顺序很关键</h3>
+<pre><code class="language-c">void objc_storeStrong(id *location, id obj) {
+    id prev = *location;
+    if (obj == prev) return;          // 自赋值保险
+    objc_retain(obj);                 // ① 先 retain 新值
+    *location = obj;                  // ② 再赋值
+    objc_release(prev);               // ③ 最后 release 旧值
+}
+</code></pre>
+<p><strong>先 retain 后 release</strong> 是刻意的：如果反过来，当 <code>newValue</code> 和 <code>oldValue</code> 是同一个对象、且这是最后一个引用时，先 release 会直接把它送进 <code>dealloc</code>。</p>
+<h3>三、方法返回值优化（TLS 快速路径）</h3>
+<p>这是 ARC 最重要的性能优化，也是面试高频：</p>
+<pre><code>调用方                                  被调方
+  |                                       |
+  |  objc_retainAutoreleasedReturnValue   |  objc_autoreleaseReturnValue(obj)
+  |                                       |    ↓
+  |                                       |  检查调用方紧接着的指令（用返回地址 TLS 判定）
+  |                                       |  如果是 objc_retainAutoreleasedReturnValue
+  |  ← 直接拿到 +1 的对象，跳过 pool  →  |  则**不 autorelease**，直接返回（计数已 +1）
+</code></pre>
+<p>原理：<code>objc_autoreleaseReturnValue</code> 通过 <strong>Thread Local Storage 里存的调用方返回地址</strong>，判断下一个指令是不是 <code>objc_retainAutoreleasedReturnValue</code>。如果是，就跳过「放入 autorelease pool」这一步，直接返回，把计数交给调用方。</p>
+<p><strong>结果：常见的 <code>[[Obj alloc] init]</code> 完全不进 autorelease pool。</strong></p>
+<blockquote>
+<p>这个优化依赖「方法返回后立刻被 retain」这个模式。一旦你在中间插入别的操作，就会退化成真正的 autorelease。</p>
+</blockquote>
+<h3>四、循环引用：ARC 唯一无法自动处理的场景</h3>
+<p>引用计数判定存活的标准是「还有没有人指向我」。当两个对象互相指向，或一个对象指向自己时，<strong>计数永远不会归零</strong>。</p>
+<p>四种最常见形态：</p>
+<table>
+<thead>
+<tr>
+<th>形态</th>
+<th>链条</th>
+<th>破解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>对象互持</strong></td>
+<td><code>A.child = B</code> / <code>B.parent = A</code></td>
+<td>一方改 <code>weak</code>（通常是子持父）</td>
+</tr>
+<tr>
+<td><strong>闭包捕获</strong></td>
+<td><code>self.closure = { self.doSomething() }</code></td>
+<td><code>[weak self]</code> / <code>[unowned self]</code></td>
+</tr>
+<tr>
+<td><strong>Timer / DisplayLink</strong></td>
+<td><code>runloop → timer → target</code>，target 又持有 timer</td>
+<td><code>weak proxy</code>（Day 12）或 <code>invalidate</code></td>
+</tr>
+<tr>
+<td><strong>通知 / KVO 未移除</strong></td>
+<td>通知中心持有观察者</td>
+<td><code>deinit</code> 移除 / token 自动解绑</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ARC 不能消除循环引用，这是它相比 GC 最大的代价，也是所有内存泄漏的根因。</strong></p>
+<h3>五、Swift 的 weak 与 unowned</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>weak</code></th>
+<th><code>unowned</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>类型</td>
+<td><strong>必须是 Optional</strong></td>
+<td>可以是非 Optional</td>
+</tr>
+<tr>
+<td>释放后</td>
+<td>自动置 <code>nil</code></td>
+<td><strong>不置 nil</strong>（保留野指针）</td>
+</tr>
+<tr>
+<td>访问已释放对象</td>
+<td>安全返回 <code>nil</code></td>
+<td><strong>崩溃</strong>（runtime 会做 unowned retain 检查）</td>
+</tr>
+<tr>
+<td>开销</td>
+<td>需要维护 weak 表</td>
+<td>无额外开销</td>
+</tr>
+<tr>
+<td>语义表达</td>
+<td>「可能不存在」</td>
+<td>「必然比我活得久，这是你的契约」</td>
+</tr>
+</tbody>
+</table>
+<p>选择原则：<strong>能用 <code>weak</code> 就用 <code>weak</code>；只有当你能在代码里证明「生命周期必然长于 self」时才用 <code>unowned</code></strong>（典型例子：闭包捕获的 <code>self.view</code> 内部的子视图、Parent-Child 中闭包由 Child 持有）。</p>
+<h3>六、Tagged Pointer 与字面量</h3>
+<pre><code class="language-objc">NSNumber *a = @(42);
+NSString *b = @&quot;hello&quot;;
+// 它们不分配堆内存、没有引用计数，retain/release 对它们是 no-op
+</code></pre>
+<p>因此不要用「打印 retainCount」来判断内存行为——对 Tagged Pointer 和字面量，这个数字毫无意义（且 <code>retainCount</code> 本身就是不该依赖的 API）。</p>
+</div></section><section class="lesson-section" id="connections"><h2>04 设计与取舍</h2><div class="markdown-body "><h3>一、Apple 为什么选 ARC 而不是 GC</h3>
+<p><strong>约束</strong>：iOS 设备内存小、没有 swap、UI 必须保证帧率稳定。</p>
+<table>
+<thead>
+<tr>
+<th>候选</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>追踪式 GC</td>
+<td>需要 Stop-The-World 或并发扫描，<strong>帧率不可控</strong>；内存峰值更高</td>
+</tr>
+<tr>
+<td>手动管理（MRR）</td>
+<td>正确率低，泄漏与野指针频发</td>
+</tr>
+<tr>
+<td><strong>引用计数 + 编译期插桩</strong></td>
+<td>释放时机确定、无全局停顿 → <strong>被选中</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>换来什么</strong>：</p>
+<ul>
+<li>释放<strong>时机确定</strong>：<code>dealloc</code> 就在最后一个引用消失的那一刻，资源能及时归还；</li>
+<li>无 Stop-The-World，帧率可预测；</li>
+<li>绝大多数内存问题在编译期被消除；</li>
+<li><code>dealloc</code> / <code>deinit</code> 成为可靠的资源释放钩子（RAII 风格）。</li>
+</ul>
+<p><strong>付出什么</strong>：</p>
+<ul>
+<li><strong>循环引用必须人工处理</strong>——这是 iOS 端内存泄漏的第一大来源；</li>
+<li>每次赋值都有 retain/release 开销（虽然很小）；</li>
+<li>weak 表、SideTable 占用额外内存并需要加锁；</li>
+<li>所有权成为<strong>开发者必须显式表达的语义</strong>，<code>weak</code> / <code>unowned</code> 选错就直接崩溃。</li>
+</ul>
+<h3>二、苹果的补救措施</h3>
+<table>
+<thead>
+<tr>
+<th>成本</th>
+<th>优化手段</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>计数存取要加锁</td>
+<td><code>isa.extra_rc</code>（19 位内联，无需查表加锁）</td>
+</tr>
+<tr>
+<td>SideTable 锁竞争</td>
+<td><code>StripedMap</code> 分成 8/64 片</td>
+</tr>
+<tr>
+<td>retain/release 指令开销</td>
+<td>编译器消除冗余的 retain/release 对</td>
+</tr>
+<tr>
+<td>返回值反复入池</td>
+<td>TLS 快速路径（跳过 autorelease pool）</td>
+</tr>
+<tr>
+<td>小对象分配开销</td>
+<td>Tagged Pointer（根本不分配堆内存）</td>
+</tr>
+<tr>
+<td>循环引用难排查</td>
+<td>Memory Graph Debugger、Runtime 检查</td>
+</tr>
+</tbody>
+</table>
+<h3>三、架构定位</h3>
+<p><strong>所有权必须是一个显式的设计决策，而不是事后补丁。</strong> 判断标准：</p>
+<ul>
+<li>每个对象都应该有明确的<strong>所有者</strong>（谁让它活着）；</li>
+<li>反向引用（子 → 父、view → controller、回调 → 宿主）<strong>默认用 <code>weak</code></strong>；</li>
+<li>长生命周期容器（单例、缓存、通知中心）持有短生命周期对象时，必须明确「什么时候移除」。</li>
+</ul>
+<h3>四、与相邻知识的连接</h3>
+<ul>
+<li><strong>AutoreleasePool（Day 7）</strong>：ARC 仍依赖 autorelease pool 处理返回值；TLS 优化决定了很多对象根本不入池。</li>
+<li><strong>Block（Day 3）</strong>：闭包捕获是循环引用的第二大来源，捕获语义与 <code>__block</code> 直接影响所有权。</li>
+<li><strong>Runtime（Day 4）</strong>：<code>isa.extra_rc</code>、<code>weak_table_t</code>、<code>SideTable</code> 全在 objc4 里。</li>
+<li><strong>NSProxy（Day 12）</strong>：弱代理是为打断 Timer 强引用环而生的。</li>
+<li><strong>Associated Object（Day 9）</strong>：关联对象的释放发生在 <code>dealloc</code> 的第二步。</li>
+</ul>
+</div></section><section class="lesson-section" id="applications"><h2>05 工程实战</h2><div class="markdown-body "><h3>一、先画所有权图，再写代码</h3>
+<p>面对任何可能泄漏的关系，先画清楚「谁强持有谁」：</p>
+<pre><code>✅ 正确                              ❌ 循环
+ViewController ─strong→ View        ViewController ─strong→ View
+View ─weak→ delegate(VC)            View ─strong→ delegate(VC)  ✗
+
+✅ 正确                              ❌ 循环
+ViewController ─strong→ Timer       RunLoop ─strong→ Timer
+Timer ─weak→ proxy ─weak→ VC        Timer ─strong→ VC ─strong→ Timer  ✗
+</code></pre>
+<p>规则：<strong>箭头只允许形成有向无环图</strong>。存在环的地方，把其中一条改成 <code>weak</code>，且优先改「生命周期更短的一方指向更长一方」的那条。</p>
+<h3>二、四类泄漏场景与标准修法</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>泄漏链</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>delegate</strong></td>
+<td><code>view.delegate = self</code>（属性是 strong）</td>
+<td>属性声明为 <code>weak</code></td>
+</tr>
+<tr>
+<td><strong>闭包</strong></td>
+<td><code>self.handler = { self.update() }</code></td>
+<td><code>[weak self]</code> + <code>guard let self</code></td>
+</tr>
+<tr>
+<td><strong>Timer</strong></td>
+<td><code>RunLoop → timer → self</code>，self 持 timer</td>
+<td><code>invalidate</code>；或使用 iOS 10+ 的 block API + <code>[weak self]</code>；或用 weak proxy</td>
+</tr>
+<tr>
+<td><strong>通知/KVO</strong></td>
+<td>中心持有观察者</td>
+<td><code>deinit</code> 中移除；KVO 用 token 自动解绑</td>
+</tr>
+<tr>
+<td><strong>GCD 延迟</strong></td>
+<td><code>queue → block → self</code></td>
+<td>尽早取消（<code>DispatchWorkItem.cancel</code>）或 <code>[weak self]</code></td>
+</tr>
+<tr>
+<td><strong>缓存</strong></td>
+<td>单例缓存持有对象</td>
+<td>用 <code>NSCache</code>（内存紧张时自动清理）并设 <code>countLimit</code></td>
+</tr>
+</tbody>
+</table>
+<h3>三、用测试验证「真的释放了」</h3>
+<p>不要靠肉眼看，写成断言：</p>
+<pre><code class="language-swift">func testViewControllerReleases() throws {
+    weak var weakVC: MyViewController?
+    try autoreleasepool {
+        let vc = MyViewController()
+        weakVC = vc
+        XCTAssertNotNil(weakVC)
+    }
+    XCTAssertNil(weakVC, &quot;ViewController 未释放，存在循环引用&quot;)
+}
+</code></pre>
+<p>要点：</p>
+<ul>
+<li>被测对象<strong>不能</strong>被测试函数里的强变量持有，否则断言永远为 <code>nil</code> 失败；</li>
+<li>涉及 autorelease 的对象要包在 <code>autoreleasepool</code> 里；</li>
+<li>交互测试中，VC 需要先走完 <code>viewDidDisappear</code> 等生命周期。</li>
+</ul>
+<h3>四、Memory Graph Debugger</h3>
+<ol>
+<li>运行 App，触发可疑场景后退出该页面；</li>
+<li>点 Xcode 调试栏的 <strong>Debug Memory Graph</strong>（三个节点图标）；</li>
+<li>左侧列表里<strong>仍然存在的本该释放的对象</strong>就是泄漏嫌疑；</li>
+<li>选中对象，右侧显示引用关系，紫色的 <code>!</code> 标记会被 Xcode 直接标为「循环引用」；</li>
+<li>打开 <strong>Malloc Stack Logging</strong>，可以反查对象的分配调用栈。</li>
+</ol>
+<h3>五、deinit / dealloc 日志验证</h3>
+<pre><code class="language-swift">deinit { print(&quot;\(type(of: self)) deinit&quot;) }
+</code></pre>
+<pre><code class="language-objc">- (void)dealloc { NSLog(@&quot;%@ dealloc&quot;, NSStringFromClass([self class])); }
+</code></pre>
+<p>Debug 期给关键 VC / ViewModel 加 <code>deinit</code> 日志，是最廉价、最可靠的泄漏检测手段。</p>
+<h3>六、其他检测手段</h3>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory Graph Debugger</td>
+<td>定位<strong>谁</strong>在持有（最常用）</td>
+</tr>
+<tr>
+<td>Instruments Leaks</td>
+<td>长时间运行后的泄漏趋势</td>
+</tr>
+<tr>
+<td>Instruments Allocations</td>
+<td>内存增长、对象数量异常</td>
+</tr>
+<tr>
+<td>Xcode Runtime Issues</td>
+<td>运行时直接报循环引用</td>
+</tr>
+<tr>
+<td>FBRetainCycleDetector</td>
+<td>自动化检测（可集成到 Debug 构建）</td>
+</tr>
+<tr>
+<td><code>deinit</code> 日志 + 单元测试</td>
+<td>回归防护</td>
+</tr>
+</tbody>
+</table>
+<h3>七、weak-strong dance 的正确写法</h3>
+<pre><code class="language-swift">loadData { [weak self] result in
+    guard let self = self else { return }   // 一旦拿到，后续一定存活
+    self.updateUI(result)
+    self.reload()
+}
+</code></pre>
+<p>为什么需要第二行：只用 <code>[weak self]</code> 时，<code>self?.a()</code> 与 <code>self?.b()</code> 之间 <code>self</code> <strong>可能被释放</strong>，导致前半段执行、后半段不执行的中间态。<code>guard let</code> 把它固定下来。</p>
+</div></section><section class="lesson-section" id="reflection"><h2>06 常见坑与反思</h2><div class="markdown-body "><h3>高频坑位表</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>成因</th>
+<th>症状</th>
+<th>规避</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>delegate 用 strong</strong></td>
+<td>属性默认 strong</td>
+<td>VC 永不释放</td>
+<td>delegate 一律 <code>weak</code></td>
+</tr>
+<tr>
+<td><strong>闭包捕获 self</strong></td>
+<td>闭包被 self 间接持有</td>
+<td>循环引用</td>
+<td><code>[weak self]</code> + <code>guard let</code></td>
+</tr>
+<tr>
+<td><strong><code>unowned</code> 假设失败</strong></td>
+<td>目标先于 self 释放</td>
+<td><strong>崩溃</strong>（不是返回 nil）</td>
+<td>只在能证明生命周期时用</td>
+</tr>
+<tr>
+<td><strong>NSTimer 不 invalidate</strong></td>
+<td>RunLoop 持有 timer</td>
+<td>VC 不释放、回调仍触发</td>
+<td><code>viewWillDisappear</code> 里 invalidate；或 block API</td>
+</tr>
+<tr>
+<td><strong>通知未移除</strong></td>
+<td>通知中心持有观察者</td>
+<td>崩溃或重复响应</td>
+<td><code>deinit</code> 移除 / token</td>
+</tr>
+<tr>
+<td><strong><code>assign</code> 修饰对象</strong></td>
+<td>不做 retain</td>
+<td>野指针崩溃</td>
+<td>对象用 <code>strong</code>/<code>weak</code>/<code>copy</code></td>
+</tr>
+<tr>
+<td><strong><code>NSString</code> 用 strong</strong></td>
+<td>外部传入 <code>NSMutableString</code> 后被改</td>
+<td>值意外变化</td>
+<td>有可变子类的一律 <code>copy</code></td>
+</tr>
+<tr>
+<td><strong>Block 属性用 assign</strong></td>
+<td>Block 在栈上</td>
+<td>野指针</td>
+<td>Block 属性必须 <code>copy</code>（ARC 下 <code>strong</code> 亦可，但语义用 <code>copy</code> 更明确）</td>
+</tr>
+<tr>
+<td><strong>过度使用 weak</strong></td>
+<td>需要对象活着时它已释放</td>
+<td>功能静默失效</td>
+<td>weak 只用于「允许不存在」的关系</td>
+</tr>
+<tr>
+<td><strong><code>deinit</code> 里访问异步 self</strong></td>
+<td>self 正在析构</td>
+<td>崩溃</td>
+<td>析构路径不做异步</td>
+</tr>
+<tr>
+<td><strong>CF 对象未 <code>__bridge</code></strong></td>
+<td>ARC 不管 CF 内存</td>
+<td>泄漏或过度释放</td>
+<td>明确 <code>__bridge</code> / <code>CFBridgingRelease</code></td>
+</tr>
+<tr>
+<td><strong><code>retainCount</code> 判内存</strong></td>
+<td>该 API 不可靠、Tagged Pointer 无意义</td>
+<td>错误结论</td>
+<td>用 Memory Graph</td>
+</tr>
+</tbody>
+</table>
+<h3>三条反思</h3>
+<ol>
+<li><strong><code>weak</code> 不是万能修复。<strong> 它只解决「引用环」这一件事。如果你的设计需要「回调时对象必须在」，改成 weak 只会把崩溃变成静默失效——更难查。</strong>先想清楚该不该是 weak，再动手。</strong></li>
+<li><strong><code>unowned</code> 是对生命周期的断言，不是性能优化。</strong> 用 <code>unowned</code> 等于向编译器和同事声明「我保证它比我活得久」。当你不能拿出证据时，就该用 <code>weak</code>。</li>
+<li><strong>ARC 消除了「忘记 release」，但没有消除「所有权设计错误」。</strong> 现代 iOS 的内存问题，99% 不是漏写 release，而是<strong>谁该持有谁没想清楚</strong>。画所有权图比看代码更有效。</li>
+</ol>
+</div></section><section class="lesson-section" id="questions"><h2>07 知识验收</h2><ol><li>ARC 和垃圾回收的本质区别是什么？为什么说 ARC 的释放时机是确定的？</li><li>引用计数存在哪里？<code>isa.extra_rc</code> 溢出后会发生什么？为什么 SideTable 要分成 8 片或 64 片？</li><li><code>objc_storeStrong</code> 内部的操作顺序是什么？为什么必须先 retain 新值再 release 旧值？</li><li><code>weak</code> 变量是在什么时机被置为 nil 的？由哪个函数完成？读一个 weak 变量时会发生什么？</li><li>描述一次完整的 <code>dealloc</code>：内部依次做了哪几件事？关联对象和 weak 指针分别在哪个阶段被处理？</li><li>什么是 ARC 的方法返回值优化（TLS 快速路径）？它跳过了什么？在什么情况下会退化？</li><li>列出四种最常见的循环引用形态，并分别给出破解方式。</li><li>Swift 中 <code>weak</code> 和 <code>unowned</code> 的区别是什么？分别适用于什么场景？用错 <code>unowned</code> 会怎样？</li><li>为什么 <code>delegate</code> 属性要用 <code>weak</code>？为什么 <code>NSString</code> / <code>NSArray</code> 属性建议用 <code>copy</code> 而不是 <code>strong</code>？</li><li>闭包里只用 <code>[weak self]</code> 为什么还不够？什么是 weak-strong dance？</li><li>如何为一个「ViewController 退出后必须释放」的需求写单元测试？测试里有哪些容易踩的坑？</li><li>给出一个真实（或可信构造的）内存泄漏故障：现象、用 Memory Graph 建立的证据链、根因与改进方案。</li><li>什么条件下你会放弃引用计数方案，改用其他内存管理策略（如值类型、区域分配、手动管理）？</li></ol></section><section class="lesson-section" id="mastery"><h2>08 掌握标准</h2><div class="markdown-body "><p><strong>一句话总结</strong>：ARC 是「编译期插桩 + 运行时计数表」的协作机制——引用计数优先存在 <code>isa.extra_rc</code> 里，溢出后外挂到分片加锁的 <code>SideTable</code>，归零时 <code>dealloc</code> 依次析构 ivar、移除关联对象、并由 <code>weak_clear_no_lock</code> 把所有 weak 指针置 nil；它换来确定性的释放时机，代价是循环引用必须由人用 <code>weak</code> / <code>unowned</code> 显式打破。</p>
+<p><strong>掌握标准</strong>：</p>
+<ul>
+<li><strong>60 分</strong>：能说清 ARC 与 GC 的区别；能列出 <code>strong</code> / <code>weak</code> / <code>unowned</code> / <code>copy</code> 的语义与适用场景；能识别 delegate、闭包、Timer 三类典型循环引用并给出修法。</li>
+<li><strong>80 分</strong>：能讲清 <code>isa.extra_rc</code> + <code>SideTable</code> 两级存储与溢出规则；能画出 <code>dealloc</code> 的完整步骤并指出 weak 置 nil 的时机；能解释 <code>objc_storeStrong</code> 的顺序原因与 TLS 返回值优化；能用 Memory Graph 与单元测试定位真实泄漏。</li>
+<li><strong>100 分</strong>：能分析 ARC 相比 GC 的取舍与苹果的六项补救优化；能对任意模块画出所有权图并证明其无环；能论证 <code>weak</code> 与 <code>unowned</code> 的选择依据，并指出「用 weak 掩盖生命周期设计问题」的危害；能把「所有权是显式设计决策」落成团队可执行的规范。</li>
+</ul>
+</div></section><section class="lesson-section" id="diagrams"><h2>图解</h2><h3>引用计数存储与释放链路</h3><pre class="mermaid">flowchart TD
+  A[&quot;对象 isa&quot;] --&gt; B{&quot;nonpointer isa?&quot;}
+  B -- 否 --&gt; C[&quot;SideTable RefcountMap（加锁）&quot;]
+  B -- 是 --&gt; D[&quot;isa.extra_rc 19 位&quot;]
+  D --&gt; E{&quot;计数溢出?&quot;}
+  E -- 否 --&gt; F[&quot;位运算加减，快路径&quot;]
+  E -- 是 --&gt; G[&quot;移一半到 SideTable，has_sidetable_rc=1&quot;]
+  G --&gt; C
+  F --&gt; H{&quot;release 后为 0?&quot;}
+  C --&gt; H
+  H -- 否 --&gt; I[&quot;继续使用&quot;]
+  H -- 是 --&gt; J[&quot;dealloc&quot;]
+  J --&gt; K[&quot;object_cxxDestruct 析构 ivar&quot;]
+  K --&gt; L[&quot;_object_remove_assocations 移除关联对象&quot;]
+  L --&gt; M[&quot;weak_clear_no_lock：weak 指针全部置 nil&quot;]
+  M --&gt; N[&quot;free 内存&quot;]</pre><h3>循环引用四形态与破解</h3><pre class="mermaid">flowchart TD
+  subgraph 正确
+    A1[&quot;VC ─strong→ View&quot;] --&gt; A2[&quot;View ─weak→ delegate&quot;]
+    B1[&quot;VC ─strong→ Timer&quot;] --&gt; B2[&quot;Timer ─weak→ proxy ─weak→ VC&quot;]
+  end
+  subgraph 循环
+    C1[&quot;View ─strong→ delegate ─strong→ VC ─strong→ View&quot;]
+    D1[&quot;RunLoop ─strong→ Timer ─strong→ VC ─strong→ Timer&quot;]
+    E1[&quot;self.closure ─strong→ 闭包 ─strong→ self&quot;]
+  end
+  C1 --&gt; F[&quot;改 weak&quot;]
+  D1 --&gt; G[&quot;invalidate 或 weak proxy&quot;]
+  E1 --&gt; H[&quot;[weak self]&quot;]</pre></section><section class="lesson-section" id="references"><h2>参考资料</h2><ul class="reference-list"><li>Apple Advanced Memory Management Programming Guide</li><li>Apple Transitioning to ARC Release Notes</li><li>Apple Automatic Reference Counting（Swift）</li><li>objc4 源码：objc-object.h / NSObject.mm / objc-weak.mm / objc-os.h</li><li>Clang ARC 规范：Objective-C Automatic Reference Counting</li></ul></section><nav class="lesson-nav"><a href="IOS-D001.html">← RunLoop：事件循环与线程保活</a><a href="../index.html">返回专题目录</a><a href="IOS-D003.html">Block：闭包、捕获与异步编程 →</a></nav></article></div></main><footer><div class="shell">结构化数据是唯一事实源 · 让每一次定时学习持续积累</div></footer></body></html>
