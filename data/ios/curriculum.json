@@ -22,5 +22,19 @@
   "Diffable Data Source：Identity、Snapshot 与一致性",
   "Instruments：从掉帧建立性能证据链",
   "最终知识地图：从对象、调度到渲染与性能",
-  "图片显示链路：从网络字节到屏幕纹理"
+  "图片显示链路：从网络字节到屏幕纹理",
+  "网络请求链路：从 URLSession 到 TCP、TLS 与 HTTP",
+  "网络缓存与连接复用：从 NSURLCache 到 HTTP 协商缓存",
+  "App 生命周期：进程、Scene、前后台与系统调度",
+  "启动链路：从点击图标到首帧可交互",
+  "Mach-O：可执行文件、段、节与符号表",
+  "dyld：动态链接、镜像装载与启动优化",
+  "虚拟内存：地址空间、分页、脏内存与内存压力",
+  "持久化链路：从文件 I/O、SQLite 到 Core Data",
+  "Swift Runtime：元数据、协议见证表与动态派发",
+  "Swift Concurrency Runtime：Task、Executor 与 Actor 隔离",
+  "锁与原子操作：互斥、竞态、优先级反转与无锁边界",
+  "崩溃诊断：Mach Exception、Signal、Watchdog 与 Jetsam",
+  "系统安全边界：代码签名、Sandbox、Entitlement 与 Keychain",
+  "进阶知识地图：从网络、装载到内存、并发与安全"
 ]
