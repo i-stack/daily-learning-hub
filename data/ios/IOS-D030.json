@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D030",
+  "title": "dyld：动态链接、镜像装载与启动优化",
+  "date": "2026-09-24",
+  "status": "completed",
+  "chapter": "启动与装载",
+  "keywords": ["dyld", "Dynamic Linking", "Mach-O", "Fixups", "Launch Closure", "Static Initializer", "Shared Cache"],
+  "summary": "从 Mach-O Load Commands 出发理解 dyld 如何发现依赖、映射镜像、修正地址、解析符号并运行初始化器，再用证据约束启动优化。",
+  "sections": {
+    "original": "背景、API 与场景：Mach-O 描述一个镜像的结构与依赖，真正启动时还需要动态装载器 dyld 把主程序和动态库组织进进程地址空间。常见工程信号包括启动阶段的 dyld Activity、第三方动态框架数量、Objective-C +load、C++ 静态构造和 __DATA,__mod_init_func。Apple 的启动优化文档指出，dyld 会检查 Mach-O Load Commands、加载依赖并解析动态符号；系统会缓存部分工作，但依赖数量、大小和加载后的工作仍会影响启动。",
+    "explanation": "运行机制：系统准备进程并把控制交给 dyld。dyld 从主可执行文件的 Load Commands 建立依赖图，定位并映射所需镜像；系统框架通常可利用 dyld shared cache，共享只读页面。地址空间随机化使镜像实际装载地址可能偏离首选地址，指针需要通过 fixups 调整；跨镜像引用也要绑定到最终目标。现代实现会借助 chained fixups、launch closure 等机制减少重复分析成本。完成必要修正后，dyld 按依赖关系运行静态初始化器，再进入应用入口。具体内部阶段和命名会随 OS 与 dyld 版本演进，应以 Instruments 和公开工具输出验证。",
+    "coreIdea": "底层原理：动态链接把一部分地址决策从构建期推迟到装载期，以换取模块独立演进和共享；代价是启动时必须发现依赖、映射页面、完成 fixups、符号解析和初始化。静态库会在构建时把所需对象代码链接进最终镜像，并不作为独立动态镜像被 dyld 加载；动态框架则保留独立镜像边界。二者不能仅以“哪个一定更快”概括，因为代码规模、死代码裁剪、共享页面、初始化器和链接配置共同决定结果。优化必须先找出关键路径上的真实成本。",
+    "connections": "Apple 的设计动机与架构思想：shared cache 让系统库代码页可被多个进程共享；launch closure 缓存依赖与部分装载工作；mergeable libraries 允许开发期保留动态库体验、发布时获得接近静态合并的启动特性。dyld 连接 Mach-O、ASLR、虚拟内存、Runtime 与启动链路：映射后的元数据会被 Objective-C/Swift 运行时使用，静态初始化又发生在 main 之前。依赖治理应同时评估构建边界、二进制体积、启动成本和可替换性，而非为了指标盲目合并全部模块。",
+    "applications": "工程实战：一、用 otool -L 和 otool -l 盘点动态依赖、rpath 与装载命令；二、使用 Instruments 的 App Launch 与 dyld Activity 观察镜像加载、fixups 和静态初始化器成本；三、审计 Objective-C +load、C++ 全局构造、constructor attribute 与 __mod_init_func，将非首屏必需工作移出 main 前阶段；四、比较 Release 真机上改动前后的冷启动 p50/p90，不用 Debug 或模拟器替代；五、减少无必要的第三方动态框架，并评估静态链接或 Xcode 的 mergeable libraries；六、每次调整依赖形态后验证符号、资源、Category、代码签名及功能回归。",
+    "reflection": "常见坑：把“pre-main”全部归因于 dyld；认为动态库越少就必然更快；把静态链接误解为代码完全没有装载成本；用 DYLD 环境变量的开发机输出代表线上 iOS；删除 +load 却把同样同步工作搬到 didFinishLaunching；忽略 launch closure 已缓存的工作；只测一次冷启动；为合并框架破坏模块边界和可维护性。反思：当前启动证据能区分镜像加载、fixups、初始化器和应用自身首屏工作吗？",
+    "questions": [
+      "dyld 如何从主 Mach-O 找到并组织动态依赖？",
+      "映射、fixups、符号绑定和静态初始化分别解决什么问题？",
+      "dyld shared cache 与 launch closure 各自减少哪类成本？",
+      "静态库和动态框架在最终产物及启动阶段的关键差异是什么？",
+      "为什么仅统计动态库数量不足以证明启动根因？",
+      "面试题：从系统创建进程到 main 之前，解释 dyld 的主要职责，并给出一条可验证的优化流程。"
+    ],
+    "mastery": "一句话总结：dyld 把 Mach-O 依赖图变成可执行的进程地址空间，启动优化要减少关键路径上的真实装载和初始化工作。掌握标准：60 分能说明映射、fixups、绑定和初始化；80 分能用工具定位具体镜像与初始化器；100 分能在启动数据、体积和架构边界之间做可回归的依赖治理。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 30,
+      "topic": "dyld：动态链接、镜像装载与启动优化"
+    },
+    "diagrams": [
+      {
+        "title": "dyld 从依赖图到应用入口",
+        "code": "flowchart LR\n A[主 Mach-O Load Commands] --> B[构建依赖图]\n B --> C[定位并映射镜像]\n C --> D[Fixups / 符号绑定]\n D --> E[运行静态初始化器]\n E --> F[进入应用入口]\n G[Shared Cache / Launch Closure] -.降低部分成本.-> C"
+      }
+    ],
+    "references": [
+      "https://developer.apple.com/documentation/xcode/reducing-your-app-s-launch-time",
+      "https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries",
+      "https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/OverviewOfDynamicLibraries.html",
+      "https://github.com/apple-oss-distributions/dyld"
+    ]
+  }
+}
