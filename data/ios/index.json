@@ -1566,5 +1566,59 @@
         "https://github.com/apple-oss-distributions/dyld"
       ]
     }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D031",
+    "title": "虚拟内存：地址空间、分页、脏内存与内存压力",
+    "date": "2026-09-25",
+    "status": "completed",
+    "chapter": "内存机制",
+    "keywords": [
+      "Virtual Memory",
+      "Page",
+      "Dirty Memory",
+      "Compressed Memory",
+      "Memory Footprint",
+      "VM Tracker",
+      "Jetsam"
+    ],
+    "summary": "从虚拟地址与页映射出发，区分 clean、dirty、compressed 和 resident 指标，解释为何分配不等于占用、内存压力也不等于泄漏。",
+    "sections": {
+      "original": "背景、API 与场景：开发中常看到虚拟地址巨大、Resident Size 波动、Memory Footprint 上涨或后台 App 被回收。虚拟内存让每个进程使用独立地址空间，系统再按页将虚拟地址映射到物理内存或文件内容。Apple 的内存工具包括 Xcode Memory Gauge、Debug Memory Graph、Instruments 的 Allocations/Leaks/VM Tracker、Xcode Organizer 与 MetricKit。不同指标回答不同问题，不能把“地址空间”“已分配字节”“常驻物理页”和“应用 footprint”混成一个数字。",
+      "explanation": "运行机制：CPU 访问虚拟地址时，页表把它翻译到物理页；尚未驻留的有效页面会通过缺页处理准备。文件映射的只读代码或资源可作为 clean 页面，需要时可从原文件重新取得；应用写入页面后形成 dirty memory，必须由系统为其内容承担存储成本。冷的 dirty 页面可被内存压缩器压缩，访问时再解压。Apple 在 iOS 内存诊断中将应用 footprint 重点描述为 dirty 与 compressed memory；clean 页面通常可被丢弃后重建。iOS 不应按 macOS 的传统磁盘 swap 模型理解，具体系统策略会演进，应以对应版本工具为准。",
+      "coreIdea": "底层原理：内存管理的最小成本单位通常是页，而不是对象。Apple 文档指出常见页大小为 16 KB，写一个字节也可能让一个新页计入使用。reserve 地址空间、commit 页面、resident 页面和 footprint 是不同层次；malloc 返回地址并不意味着每个字节已经形成同等物理成本。泄漏只是 footprint 上涨的一种原因，缓存、解码图片、长期存活对象、碎片、大事务和临时峰值都可能增加 dirty memory。反过来，没有泄漏也可能因峰值过高遭遇内存压力或系统终止。",
+      "connections": "Apple 的设计动机与架构思想：虚拟内存提供进程隔离、按需加载、共享只读页和页级权限；内存压缩以 CPU 换空间，帮助系统应对压力。它连接 Mach-O 映射、图片解码、mmap、线程栈与对象生命周期。工程架构应按“可重建、可淘汰、必须保留”管理状态：可下载和可解码内容优先限额缓存，关键业务状态及时持久化，避免把所有数据常驻内存。收到内存警告应降低可选占用，但不能把它当唯一回收时机。",
+      "applications": "工程实战：一、在稳定操作脚本下记录基线、峰值和回落后的 footprint，而非只看瞬时仪表；二、用 Allocations 查看对象与分配调用栈，用 Memory Graph 查所有权环，用 VM Tracker 区分堆、映射、图片等区域；三、对列表、相册和数据库批处理设置可复现的大数据集，观察 dirty/compressed 变化；四、图片按显示尺寸下采样，缓存按解码成本限额；五、缩小 Core Data 事务或批处理中的同时存活集合，并用 autoreleasepool 控制临时峰值；六、结合 Organizer 的 peak memory、memory at suspension 和 Jetsam/EXC_RESOURCE 报告做线上验证。",
+      "reflection": "常见坑：把虚拟地址空间大小当成真实 RAM；只要内存上涨就断言泄漏；看到对象释放就认为像素缓冲立即归零；用 purge 缓存掩盖无限增长；在内存警告里无差别销毁关键状态；只测高配设备；认为 compressed memory 没有成本；把模拟器内存行为直接等同真机。反思：当前最大内存消费者是不可达泄漏、活跃工作集、缓存，还是一次性峰值？证据是什么？",
+      "questions": [
+        "虚拟地址空间、resident memory 和 memory footprint 有什么区别？",
+        "clean、dirty 与 compressed 页面分别意味着什么成本？",
+        "为什么写入少量数据也可能按一个页面增加内存使用？",
+        "没有泄漏时，哪些工程行为仍可能触发内存压力或系统终止？",
+        "Allocations、Memory Graph 和 VM Tracker 应分别回答什么问题？",
+        "面试题：解释一张大图从文件映射到解码缓冲后，clean 与 dirty memory 可能如何变化。"
+      ],
+      "mastery": "一句话总结：虚拟内存把地址、映射和物理成本解耦，iOS 优化的核心是控制 dirty 加 compressed 的真实工作集与峰值。掌握标准：60 分能区分地址空间、常驻页和 footprint；80 分能用三类工具定位增长来源；100 分能按可重建性设计缓存、批处理和压力恢复，并以线上分布验证。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 31,
+        "topic": "虚拟内存：地址空间、分页、脏内存与内存压力"
+      },
+      "diagrams": [
+        {
+          "title": "虚拟页状态与应用内存成本",
+          "code": "flowchart LR\n A[虚拟地址空间] --> B[页表映射]\n B --> C[Clean: 可从文件重建]\n B --> D[Dirty: App 已写入]\n D --> E[Resident Dirty]\n D --> F[Compressed]\n E --> G[Memory Footprint]\n F --> G\n H[内存压力] --> I[回收 clean / 压缩 / 终止]"
+        }
+      ],
+      "references": [
+        "https://developer.apple.com/documentation/xcode/reducing-your-app-s-memory-use",
+        "https://developer.apple.com/documentation/xcode/making-changes-to-reduce-memory-use",
+        "https://developer.apple.com/videos/play/wwdc2021/10180/",
+        "https://developer.apple.com/library/archive/documentation/Performance/Conceptual/ManagingMemory/Articles/AboutMemory.html"
+      ]
+    }
   }
 ]
