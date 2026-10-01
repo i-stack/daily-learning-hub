@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D032",
+  "title": "持久化链路：从文件 I/O、SQLite 到 Core Data",
+  "date": "2026-10-01",
+  "status": "completed",
+  "chapter": "数据与存储",
+  "keywords": ["File I/O", "Atomic Write", "SQLite", "Core Data", "Persistent Store", "Transaction", "Migration"],
+  "summary": "从文件系统写入、SQLite 事务到 Core Data 对象图，建立数据模型、并发、原子性、迁移和性能之间的分层认知。",
+  "sections": {
+    "original": "背景、API 与场景：设置、草稿、消息、离线列表和大规模关系数据需要不同的持久化策略。Foundation 提供 Data、FileHandle、FileManager 与原子写入；SQLite 提供表、索引、查询和事务；Core Data 管理对象图、变更跟踪、验证、并发上下文与持久化存储。Core Data 可以使用 SQLite store，但它不是 SQLite 封装器，原生 store 格式属于框架私有契约，不能用 SQLite API 直接修改。",
+    "explanation": "运行机制：普通文件写入把序列化字节交给文件系统；原子写入通常先写辅助文件，再以替换完成提交，可避免留下半写文件，但会增加 I/O 和元数据操作。SQLite 用事务把多条变更组织成一致提交，索引以额外空间和写成本换查询效率。Core Data 中 NSManagedObjectContext 维护已注册对象与未保存变更，save 先验证并把变更推向父上下文或 Persistent Store Coordinator，协调器再交给具体 store。SQLite store 可只加载部分对象并通过 faulting 延迟取数；批量 insert/update/delete 可绕过逐对象加载，但内存中对象需处理合并或刷新。",
+    "coreIdea": "底层原理：持久化不是“把对象写到磁盘”，而是定义数据格式、事务边界、并发所有权、索引、迁移和失败恢复。文件适合边界清楚的整体数据；SQLite 适合明确关系与查询；Core Data 适合由对象图和变更生命周期驱动的应用模型。context 是队列约束的工作区，不是线程安全的全局容器；managed object 不能随意跨 context 传递，应使用 NSManagedObjectID 或稳定业务标识重新获取。调用 save 成功也要区分保存到了父上下文还是最终磁盘 store。",
+    "connections": "Apple 的设计动机与架构思想：Foundation 文件 API提供通用字节与目录抽象，SQLite store 支持增量读取，Core Data 在存储之上提供 identity map、faulting、undo、验证与关系一致性。架构上把 DTO、领域模型和 NSManagedObject 职责分开，Repository 负责查询与事务语义，调用方不依赖 store 文件细节。关键数据、可重建缓存和临时数据应放在合适目录并采用不同备份策略；schema 演进必须在发布前设计迁移与回滚，而不是上线后直接改数据库文件。",
+    "applications": "工程实战：一、小型配置用 Codable 加原子替换，并对写入失败保留旧版本；二、大数据导入放到后台 context，按批次 save/reset 控制内存峰值；三、为真实查询谓词与排序建立必要索引，用 Instruments 或 SQL 调试证据验证；四、通过 objectID 在 context 间传递身份，所有 context 操作遵守 perform/队列隔离；五、批量操作后合并对象 ID 变化，避免 UI 持有陈旧对象；六、发布前用旧版本真实 store 测试轻量或显式迁移，验证断电、磁盘满、模型不兼容和中途失败后的可恢复性。",
+    "reflection": "常见坑：每改一个字段就全文件原子重写；把 UserDefaults 当数据库；直接操作 Core Data 的 SQLite 文件；在主线程执行大查询或 save；跨线程传 NSManagedObject；无边界 fetch 导致对象和 pending changes 常驻；只设计 schema 不测试迁移；把缓存和用户唯一数据放同一清理策略。反思：当前数据的权威来源、事务边界、可重建性和迁移责任分别在哪里？",
+    "questions": [
+      "原子文件写入解决什么问题，又为什么会增加 I/O？",
+      "文件、SQLite 与 Core Data 分别适合哪些数据和查询模型？",
+      "为什么 Core Data 使用 SQLite store 也不能直接修改 SQLite 文件？",
+      "NSManagedObjectContext 的 save 一定意味着数据已写入最终磁盘吗？",
+      "为什么跨 context 应传 objectID 而不是 managed object？",
+      "面试题：设计十万条消息的离线导入、查询、更新与迁移链路，并说明如何控制一致性和内存峰值。"
+    ],
+    "mastery": "一句话总结：持久化的核心是可靠地维护数据契约和事务边界，而不是选择一个“能写磁盘”的 API。掌握标准：60 分能选择文件、SQLite 或 Core Data；80 分能处理 context 隔离、批量操作与迁移；100 分能以故障注入、性能数据和旧库升级证明数据链路可恢复。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 32,
+      "topic": "持久化链路：从文件 I/O、SQLite 到 Core Data"
+    },
+    "diagrams": [
+      {
+        "title": "持久化抽象与提交链路",
+        "code": "flowchart LR\n A[业务事务] --> B[Repository]\n B --> C{存储模型}\n C -->|整体字节| D[Atomic File Write]\n C -->|关系与查询| E[SQLite Transaction]\n C -->|对象图| F[Managed Object Context]\n F --> G[Persistent Store Coordinator]\n G --> H[SQLite / Other Store]\n I[迁移与恢复策略] -.约束.-> C"
+      }
+    ],
+    "references": [
+      "https://developer.apple.com/documentation/technologyoverviews/files-and-directories",
+      "https://developer.apple.com/documentation/foundation/nsdata/writingoptions/atomic",
+      "https://developer.apple.com/documentation/coredata/setting-up-a-core-data-stack-manually",
+      "https://developer.apple.com/documentation/coredata/batch-processing",
+      "https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/CoreData/PersistentStoreFeatures.html"
+    ]
+  }
+}
