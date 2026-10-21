@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "work": "ios-internals",
+  "id": "IOS-D033",
+  "title": "Swift Runtime：元数据、协议见证表与动态派发",
+  "date": "2026-10-21",
+  "status": "completed",
+  "chapter": "Swift 运行时",
+  "keywords": ["Type Metadata", "Value Witness Table", "Protocol Witness Table", "VTable", "Existential", "Generic Specialization", "Dynamic Dispatch"],
+  "summary": "从类型元数据、值见证表、协议见证表到类虚表，理解 Swift 如何描述类型、实现协议并在抽象与性能之间选择派发路径。",
+  "sections": {
+    "original": "背景、API 与场景：Swift 既要支持值类型、泛型、协议和关联类型等静态抽象，也要让跨模块代码在运行时完成类型布局、复制销毁、类型转换与协议调用。编译器和运行时因此使用多类描述结构：类型元数据描述具体类型；值见证表提供大小、对齐以及复制、移动、销毁等值操作；协议见证表把某个具体类型的协议一致性映射到协议要求；类元数据还可承载虚方法表。它们职责不同，不能统称为同一种“虚表”。",
+    "explanation": "底层运行机制：泛型函数在未被特化时，可接收类型元数据和一致性所需的见证表作为隐藏参数；编译器也可能对已知具体类型做特化与去虚拟化，生成直接调用。以 any P 保存协议存在值时，容器需要保存或引用实际值，并携带其动态类型信息及所需协议见证表；小值是否内联、具体布局如何实现属于 ABI 与编译器策略，不应仅凭源码断言。调用协议要求时可经协议见证表定位实现；类的可覆写 Swift 方法通常可经类虚表派发；Objective-C 互操作入口则可能走 objc_msgSend。最终机器码仍受 whole-module optimization、可见性、final、动态替换与库演进约束影响。",
+    "coreIdea": "Apple 与 Swift 的设计动机：把“类型是什么”“值如何管理”“某类型怎样满足协议”“类方法由谁实现”拆为独立运行时契约，使泛型算法可以共享代码，使值类型无需继承也能参与多态，并为稳定 ABI 和库演进保留间接层。关键判断不是把 Swift 粗分成静态或动态语言，而是逐个调用点确认：具体类型在编译期是否已知、调用是否属于协议要求、实现能否被覆写、是否跨韧性边界，以及优化器是否有证据消除间接调用。",
+    "connections": "架构联系：泛型 some P 保留一个由调用关系确定的具体类型，any P 则把不同具体类型抹到统一存在类型接口，两者的表达能力与成本模型不同。协议扩展中未声明为协议 requirement 的同名方法，不会因为存在值背后的具体类型提供同名实现就自动获得见证表动态派发；选择通常由静态类型和重载规则决定。库演进模式下，客户端不能固化所有外部类型布局和方法槽位，访问器、派发 thunk、元数据与韧性边界共同换取二进制兼容。",
+    "applications": "工程实战：一、先用泛型表达不需要异构存储的抽象，仅在确需运行时异构时引入 any；二、用 final、private 或模块内可见性向优化器提供不可覆写证据，但不为猜测中的性能收益破坏设计；三、用 swiftc -emit-sil 查看 function_ref、class_method、witness_method 和 apply，再结合优化版 SIL、LLVM IR 或反汇编确认是否特化和去虚拟化；四、性能测试必须使用 Release 配置、真实调用规模和 Instruments，分别测量分配、代码体积与调用成本；五、设计公共协议时把真正需要动态多态的行为列为 requirement，并以默认实现复用逻辑；六、跨模块二进制框架开启库演进后，分别验证旧客户端与新框架组合。",
+    "reflection": "常见坑：把值见证表与协议见证表混为一谈；认为所有协议方法调用都必然动态派发；认为结构体拥有类虚表；把 any P 与 some P 当作等价语法糖；看到源码中的协议就断言一定装箱或堆分配；在 Debug 产物上推导 Release 性能；忽略协议扩展非 requirement 方法的静态选择；把当前编译器观察结果当成永恒语言契约。反思：当前抽象是否真的需要运行时异构？你对成本的判断来自 ABI 文档、优化后 SIL，还是仅来自语法表象？",
+    "questions": [
+      "类型元数据、值见证表、协议见证表与类虚表各自解决什么问题？",
+      "泛型函数为什么可能需要隐藏的类型元数据和见证表参数？",
+      "any P 与 some P 在类型身份和运行时表示上有何根本差异？",
+      "协议扩展中未列为 requirement 的方法为何不能按具体类型动态派发？",
+      "哪些信息可能让优化器把间接调用去虚拟化为直接调用？",
+      "面试题：给定一个 [any Drawable] 渲染循环，说明可能的存储与派发链路，并设计 SIL 和基准实验验证性能假设。"
+    ],
+    "mastery": "一句话总结：Swift Runtime 用元数据描述类型、用不同见证表管理值和协议一致性，并让编译器在语义约束内选择直接、虚表、见证表或 Objective-C 消息派发。掌握标准：60 分能区分四类运行时结构；80 分能解释泛型、存在类型与协议扩展的派发差异；100 分能以优化后 SIL、反汇编和基准数据证明具体调用点的真实路径。"
+  },
+  "extensions": {
+    "curriculum": {
+      "ordinal": 33,
+      "topic": "Swift Runtime：元数据、协议见证表与动态派发"
+    },
+    "diagrams": [
+      {
+        "title": "Swift 类型信息与派发路径",
+        "code": "flowchart TD\n A[Swift 调用点] --> B{编译期已知且可优化?}\n B -->|是| C[直接调用 / 特化]\n B -->|否| D{抽象种类}\n D -->|类可覆写方法| E[Class VTable]\n D -->|协议 requirement| F[Protocol Witness Table]\n D -->|Objective-C 互操作| G[objc_msgSend]\n H[Type Metadata] --> I[类型身份与布局信息]\n J[Value Witness Table] --> K[复制 / 移动 / 销毁]\n H -.支持.-> F\n J -.管理值.-> F"
+      }
+    ],
+    "references": [
+      "https://github.com/swiftlang/swift/blob/main/docs/ABI/TypeMetadata.rst",
+      "https://github.com/swiftlang/swift/blob/main/docs/ABIStabilityManifesto.md",
+      "https://github.com/swiftlang/swift/blob/main/docs/Runtime.md",
+      "https://www.swift.org/blog/library-evolution/"
+    ]
+  }
+}
