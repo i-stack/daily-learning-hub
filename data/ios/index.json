@@ -1729,5 +1729,64 @@
         "https://www.swift.org/blog/library-evolution/"
       ]
     }
+  },
+  {
+    "schemaVersion": 1,
+    "work": "ios-internals",
+    "id": "IOS-D034",
+    "title": "Swift Concurrency Runtime：Task、Executor 与 Actor 隔离",
+    "date": "2026-10-22",
+    "status": "completed",
+    "chapter": "Swift 并发运行时",
+    "keywords": [
+      "Swift Concurrency",
+      "Task",
+      "Job",
+      "Executor",
+      "Actor Isolation",
+      "MainActor",
+      "Sendable",
+      "Cancellation",
+      "Reentrancy"
+    ],
+    "summary": "从异步函数的挂起与恢复出发，串联 Task、Job、Executor、Actor 隔离和协作式取消，建立不依赖线程猜测的 Swift 并发模型。",
+    "sections": {
+      "original": "版本前提、背景与 API：本课以 Swift Concurrency 已稳定的 Task、async/await、TaskGroup、actor、MainActor、Sendable 与协作式取消语义为基线；具体隔离推断会受 Swift 语言模式和编译器版本影响，工程中应以当前 Xcode 的严格并发诊断为准。Task 表示一项异步工作的生命周期；async let 与 TaskGroup 建立结构化父子关系，Task { } 创建非结构化任务，Task.detached 则显式脱离当前隔离上下文。Actor 保护共享可变状态，MainActor 是面向 UI 状态的重要全局 Actor。",
+      "explanation": "底层运行机制：编译器把 async 函数转换为可在挂起点保存状态、稍后继续的形式。一次 Task 的执行可拆成多个可调度 Job；运行时把就绪 Job 交给合适的 Executor，而 Executor 决定何时获得执行资源。await 表示这里可能挂起，不保证一定挂起，也不等于切换到新线程；恢复后也不保证仍是原线程。Task 会携带优先级、任务局部值和取消状态等上下文。取消只是发出请求，任务必须通过 Task.checkCancellation()、Task.isCancelled 或具有取消语义的挂起 API 协作停止。",
+      "coreIdea": "底层原理：线程是执行资源，Task 是逻辑工作单元，Executor 是 Job 的调度与隔离落点，Actor 是数据隔离域，四者不能互换。Actor 的 SerialExecutor 保证同一隔离域中的同步片段互斥执行，但 Actor 默认可重入：隔离方法在 await 挂起后，其他任务可以进入该 Actor；恢复时先前读取的状态可能已经变化。因此 Actor 保护的是单个不跨挂起点的隔离片段，而不是自动为整个 async 方法提供事务语义。Sendable 则描述值能否安全跨并发域传递。",
+      "connections": "Apple 与 Swift 的设计动机：让开发者表达所有权、父子生命周期和数据隔离，而不是手工绑定线程与队列。结构化并发使父作用域在退出前等待子任务，并形成清晰的错误与取消传播边界；Actor 把共享可变状态的访问规则提升到类型系统；MainActor 让 UI 隔离约束可被编译器检查。SerialExecutor 负责互斥隔离，TaskExecutor 更接近为任务提供执行线程来源，两者语义不同。自定义 Executor 用于兼容既有事件循环、线程亲和或特殊调度需求，不是日常性能优化的默认工具。",
+      "applications": "工程实战：一、UI ViewModel 与可观察 UI 状态标注 @MainActor，把纯计算和 I/O 边界建模为明确的非 UI 工作；二、固定数量且彼此独立的子任务使用 async let，动态扇出使用 TaskGroup，并在父作用域统一收敛结果；三、每个 Task 都回答谁创建、谁持有、谁取消、何时结束，页面退出或新请求开始时取消旧任务；四、跨 Actor 传值优先使用不可变 Sendable 值类型，避免用 @unchecked Sendable 掩盖共享可变状态；五、Actor 方法跨 await 时保存稳定标识，并在恢复后重新校验版本、请求 ID 或业务前提；六、用 Instruments 的 Swift Tasks 与 Time Profiler 观察 Task 生命周期、Actor 争用和主执行器上的长任务。",
+      "reflection": "常见坑：把 Task 当线程；认为 async 自动在后台执行；认为每个 await 都会换线程；用 Task { } 包住 CPU 重活就认为不会阻塞 MainActor；把 Actor 当不可重入锁并让业务不变量跨 await；创建无人持有和取消的任务；认为 cancel 会强制终止；在 Actor 间传递非 Sendable 可变引用；滥用 Task.detached 丢失隔离和生命周期语义；用 DispatchQueue.main.async 修补编译器隔离错误。反思：当前并发问题的真实边界是任务生命周期、数据所有权、隔离还是执行资源？",
+      "questions": [
+        "Task、Job、Executor、线程与 Actor 分别承担什么职责？",
+        "为什么 await 既不保证挂起，也不保证切换线程？",
+        "Actor 的串行隔离为什么仍可能出现跨 await 的业务竞态？",
+        "结构化并发相对散落的 Task { } 提供了哪些生命周期保证？",
+        "取消为何是协作式的，CPU 密集循环应怎样响应取消？",
+        "面试题：设计一个可取消的搜索页，解释如何避免旧请求覆盖新结果、如何隔离 UI 状态，并给出可验证的 Task 生命周期。"
+      ],
+      "mastery": "一句话总结：Swift Concurrency Runtime 调度的是 Task 拆出的 Job，Executor 提供执行与隔离上下文，Actor 约束共享状态，而正确性最终取决于清晰的生命周期、Sendable 边界和跨 await 的状态复核。掌握标准：60 分能区分 Task、Executor 与线程；80 分能解释 Actor 隔离、重入和协作式取消；100 分能设计结构化任务树，并用严格并发检查与 Instruments 证明隔离和性能假设。"
+    },
+    "extensions": {
+      "curriculum": {
+        "ordinal": 34,
+        "topic": "Swift Concurrency Runtime：Task、Executor 与 Actor 隔离"
+      },
+      "diagrams": [
+        {
+          "title": "Task 从挂起到恢复的运行链路",
+          "code": "flowchart LR\n A[Task 生命周期] --> B[可运行 Job]\n B --> C{隔离要求}\n C -->|Actor isolated| D[Serial Executor]\n C -->|Nonisolated work| E[Task / Global Executor]\n D --> F[线程执行同步片段]\n E --> F\n F --> G{遇到 await}\n G -->|未挂起| F\n G -->|挂起| H[保存 continuation 状态]\n H --> I[依赖完成后生成后续 Job]\n I --> C\n J[Cancellation flag] -.协作检查.-> A"
+        }
+      ],
+      "references": [
+        "https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency/",
+        "https://developer.apple.com/documentation/swift/task/",
+        "https://developer.apple.com/tutorials/instruments/ensuring-work-executes-in-a-background-thread",
+        "https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md",
+        "https://github.com/swiftlang/swift-evolution/blob/main/proposals/0306-actors.md",
+        "https://github.com/swiftlang/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md",
+        "https://github.com/swiftlang/swift-evolution/blob/main/proposals/0417-task-executor-preference.md"
+      ]
+    }
   }
 ]
